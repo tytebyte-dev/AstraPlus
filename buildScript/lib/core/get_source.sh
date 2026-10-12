@@ -41,9 +41,8 @@ fetch_and_patch() {
   local patches=()
   if [ -n "$patch_spec" ]; then
     if [ -d "$patch_spec" ]; then
-      while IFS= read -r -d '' f; do
-        patches+=("$f")
-      done < <(find "$patch_spec" -maxdepth 1 -type f -name "*.patch" | sort -z)
+      # Use mapfile for reliable sorting of *.patch files
+      mapfile -t patches < <(find "$patch_spec" -maxdepth 1 -type f -name "*.patch" | sort)
     elif [ -f "$patch_spec" ]; then
       patches+=("$patch_spec")
     fi

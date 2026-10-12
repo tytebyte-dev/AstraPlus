@@ -81,6 +81,14 @@ fetch_and_patch "sing-box" \
 
 SING_BOX_DIR="$(pwd)/sing-box"
 
+# go:embed in adblock resources requires this file (kept by .gitignore exception)
+ADBLOCK_FILES_DIR="$SING_BOX_DIR/common/adblock/adblockrust/resources/files"
+mkdir -p "$ADBLOCK_FILES_DIR"
+if [ ! -f "$ADBLOCK_FILES_DIR/placeholder.txt" ]; then
+  echo "placeholder" > "$ADBLOCK_FILES_DIR/placeholder.txt"
+  echo "==> Created adblock resources placeholder.txt"
+fi
+
 #### amneziawg-go (patches come from sing-box/patches/amneziawg-go after sing-box is patched)
 fetch_and_patch "amneziawg-go" \
   "$REPO_AMNEZIAWG_GO" \

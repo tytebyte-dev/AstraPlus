@@ -1,10 +1,9 @@
 package io.nekohasekai.sagernet.fmt.snell
 
-import io.nekohasekai.sagernet.ktx.urlSafe
-import io.nekohasekai.sagernet.ktx.unUrlSafe
+import io.nekohasekai.sagernet.ktx.linkBuilder
+import io.nekohasekai.sagernet.ktx.toLink
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
-// URI 格式: snell://base64(psk)@server:port?version=6&userkey=base64(userkey)&mode=default&reuse=true&network=tcp#name
 fun parseSnell(url: String): SnellBean {
     val link = url.replace("snell://", "https://").toHttpUrlOrNull()
         ?: error("Invalid snell URL")
@@ -12,45 +11,37 @@ fun parseSnell(url: String): SnellBean {
     return SnellBean().apply {
         serverAddress = link.host
         serverPort = link.port
-        psk = link.username.unUrlSafe()
+        psk = link.username
         name = link.fragment ?: ""
 
         link.queryParameter("version")?.toIntOrNull()?.let {
             version = it.coerceIn(1, 6)
         }
-        link.queryParameter("userkey")?.let { userKey = it.unUrlSafe() }
+        link.queryParameter("userkey")?.let { userKey = it }
         link.queryParameter("obfs-mode")?.let { obfsMode = it }
         link.queryParameter("obfs-host")?.let { obfsHost = it }
         link.queryParameter("reuse")?.let { reuse = it.toBoolean() }
         link.queryParameter("network")?.let { network = it }
         link.queryParameter("mode")?.let { mode = it }
+        link.queryParameter("quic-proxy-mode")?.let { quicProxyMode = it.toBoolean() }
     }
 }
 
 fun SnellBean.toUri(): String {
-    val builder = StringBuilder("snell://")
-    builder.append(psk.urlSafe()).append("@")
-    builder.append(serverAddress).append(":").append(serverPort)
-
-    val params = mutableListOf<String>()
-    params.add("version=$version")
-    if (userKey.isNotBlank()) params.add("userkey=${userKey.urlSafe()}")
+    val builder = linkBuilder().username(psk).host(serverAddress).port(serverPort)
+    builder.addQueryParameter("version", version.toString())
     if (version == 6) {
-        if (mode.isNotBlank() && mode != "default") params.add("mode=$mode")
+        if (mode.isNotBlank() && mode != "default") builder.addQueryParameter("mode", mode)
+        if (quicProxyMode == true) builder.addQueryParameter("quic-proxy-mode", "true")
     } else {
-        if (obfsMode.isNotBlank()) params.add("obfs-mode=$obfsMode")
-        if (obfsHost.isNotBlank()) params.add("obfs-host=$obfsHost")
+        if (obfsMode.isNotBlank()) builder.addQueryParameter("obfs-mode", obfsMode)
+        if (obfsHost.isNotBlank()) builder.addQueryParameter("obfs-host", obfsHost)
     }
-    if (reuse) params.add("reuse=true")
-    if (network.isNotBlank()) params.add("network=$network")
-
-    builder.append("?").append(params.joinToString("&"))
-
-    if (name.isNotBlank()) {
-        builder.append("#").append(name.urlSafe())
-    }
-
-    return builder.toString()
+    if (reuse) builder.addQueryParameter("reuse", "true")
+    if (network.isNotBlank()) builder.addQueryParameter("network", network)
+    if (userKey.isNotBlank()) builder.addQueryParameter("userkey", userKey)
+    if (name.isNotBlank()) builder.fragment(name)
+    return builder.toLink("snell")
 }
 
 fun parseClashSnell(proxy: Map<String, Any?>): SnellBean {
@@ -59,20 +50,14 @@ fun parseClashSnell(proxy: Map<String, Any?>): SnellBean {
         serverAddress = proxy["server"] as? String ?: ""
         serverPort = (proxy["port"] as? Number)?.toInt() ?: 443
         psk = proxy["psk"] as? String ?: ""
-
-        val clashVersion = ((proxy["version"] as? Number)?.toInt() ?: 4).coerceIn(1, 5)
-        version = if (clashVersion == 5) 4 else clashVersion
-
+        version = ((proxy["version"] as? Number)?.toInt() ?: 4).coerceIn(1, 6)
+        userKey = proxy["userkey"] as? String ?: ""
+        mode = proxy["mode"] as? String ?: ""
         reuse = proxy["reuse"] as? Boolean ?: false
 
         val udpEnabled = proxy["udp"] as? Boolean ?: false
-        network = if (udpEnabled) {
-            ""
-        } else {
-            "tcp"
-        }
+        network = if (udpEnabled) "" else "tcp"
 
-        // obfs-opts
         (proxy["obfs-opts"] as? Map<*, *>)?.let { obfsOpts ->
             obfsMode = obfsOpts["mode"] as? String ?: ""
             obfsHost = obfsOpts["host"] as? String ?: ""

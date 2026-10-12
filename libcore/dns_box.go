@@ -46,7 +46,7 @@ func newPlatformTransport(iif LocalDNSTransport, tag string, options option.Loca
 	}
 }
 
-func (p *platformLocalDNSTransport) Start(stage adapter.StartStage) error {
+func (p *platformLocalDNSTransport) Start(stage adapter.StartStage, scope *adapter.Scope) error {
 	return nil
 }
 
@@ -54,24 +54,38 @@ func (p *platformLocalDNSTransport) Close() error {
 	return nil
 }
 
-func (p *platformLocalDNSTransport) Exchange(ctx context.Context, message *mDNS.Msg) (*mDNS.Msg, error) {
-	if p.raw && rawQueryFunc != nil {
-		// Raw - Android 10 及以上才有
+func (p *platformLocalDNSTransport) Reset() {
+}
 
-		messageBytes, err := message.Pack()
-		if err != nil {
-			return nil, err
+func (p *platformLocalDNSTransport) Exchange(ctx context.Context, message *mDNS.Msg) (*mDNS.Msg, error) {
+	if p.raw {
+		// Raw - Android 10 及以上才有
+		//
+		// Only delegate to android_res_nsend when a real network handle is
+		// available. With handle 0 (NETID_UNSET) bionic's resolver has no
+		// per-network DNS config and silently falls back to its built-in
+		// 8.8.8.8/8.8.4.4 instead of the current interface DNS servers.
+		networkHandle := p.iif.NetworkHandle()
+		if networkHandle != 0 && rawQueryFunc != nil {
+			messageBytes, err := message.Pack()
+			if err != nil {
+				return nil, err
+			}
+			msg, err := rawQueryFunc(networkHandle, messageBytes)
+			if err != nil {
+				return nil, err
+			}
+			responseMessage := new(mDNS.Msg)
+			err = responseMessage.Unpack(msg)
+			if err != nil {
+				return nil, err
+			}
+			return responseMessage, nil
 		}
-		msg, err := rawQueryFunc(p.iif.NetworkHandle(), messageBytes)
-		if err != nil {
-			return nil, err
-		}
-		responseMessage := new(mDNS.Msg)
-		err = responseMessage.Unpack(msg)
-		if err != nil {
-			return nil, err
-		}
-		return responseMessage, nil
+		// No usable network handle (or android_res_nsend unavailable): resolve
+		// directly against the current interface DNS servers through a
+		// VPN-protected socket so the real network DNS is used.
+		return p.exchangeViaInterfaceDNS(ctx, message)
 	} else {
 		// Lookup - Android 10 以下
 
@@ -120,6 +134,16 @@ func (p *platformLocalDNSTransport) Exchange(ctx context.Context, message *mDNS.
 	}
 }
 
+func (p *platformLocalDNSTransport) ExchangeAsync(
+	ctx context.Context,
+	message *mDNS.Msg,
+	callback func(response *mDNS.Msg, err error),
+) {
+	go func() {
+		callback(p.Exchange(ctx, message))
+	}()
+}
+
 type Func interface {
 	Invoke() error
 }
@@ -145,6 +169,7 @@ func (c *ExchangeContext) Success(result string) {
 	}), func(it string) netip.Addr {
 		return M.ParseSocksaddrHostPort(it, 0).Unwrap().Addr
 	})
+	c.done()
 }
 
 func (c *ExchangeContext) RawSuccess(result []byte) {

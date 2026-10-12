@@ -2,321 +2,338 @@ package io.nekohasekai.sagernet.ui
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.MenuItem
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.widget.Toolbar
-import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import android.widget.Toast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import io.nekohasekai.sagernet.R
+import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.ProfileManager
 import io.nekohasekai.sagernet.database.RuleEntity
+import io.nekohasekai.sagernet.database.RuleType
 import io.nekohasekai.sagernet.database.SagerDatabase
-import io.nekohasekai.sagernet.databinding.LayoutEmptyRouteBinding
-import io.nekohasekai.sagernet.databinding.LayoutRouteItemBinding
 import io.nekohasekai.sagernet.ktx.*
-import io.nekohasekai.sagernet.widget.ListListener
+import io.nekohasekai.sagernet.routing.RoutingExportWarning
+import io.nekohasekai.sagernet.routing.RoutingProfileExporter
+import io.nekohasekai.sagernet.routing.RoutingProfileFormat
+import io.nekohasekai.sagernet.ui.compose.NekoComposeTheme
+import io.nekohasekai.sagernet.ui.compose.RouteScreen
+import io.nekohasekai.sagernet.ui.compose.RouteScreenAction
+import io.nekohasekai.sagernet.ui.compose.RouteScreenExportDestination
+import io.nekohasekai.sagernet.ui.compose.RouteScreenExportFormat
+import io.nekohasekai.sagernet.widget.QRCodeDialog
 import io.nekohasekai.sagernet.widget.UndoSnackbarManager
+import java.util.Collections
 
-class RouteFragment : ToolbarFragment(R.layout.layout_route), Toolbar.OnMenuItemClickListener {
+private object PendingRouteDeletions {
+    private val ids = Collections.synchronizedSet(mutableSetOf<Long>())
 
-    lateinit var activity: MainActivity
-    lateinit var ruleListView: RecyclerView
-    lateinit var ruleAdapter: RuleAdapter
-    lateinit var undoManager: UndoSnackbarManager<RuleEntity>
+    fun add(ruleId: Long) = ids.add(ruleId)
+    fun remove(ruleId: Long) = ids.remove(ruleId)
+    fun contains(ruleId: Long) = ids.contains(ruleId)
+}
+
+class RouteFragment : ToolbarFragment(), ProfileManager.RuleListener,
+    UndoSnackbarManager.Interface<RuleEntity> {
+
+    private lateinit var activity: MainActivity
+    private lateinit var undoManager: UndoSnackbarManager<RuleEntity>
+    private val rules = mutableStateListOf<RuleEntity>()
+    private val movedRules = LinkedHashSet<RuleEntity>()
+    private var exportWarningMessage by mutableStateOf<String?>(null)
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View {
+        return ComposeView(requireContext()).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                NekoComposeTheme {
+                    RouteScreen(
+                        rules = rules,
+                        onOpenDrawer = { (requireActivity() as MainActivity).openDrawer() },
+                        onAddNormalRoute = { addRoute(RuleType.NORMAL) },
+                        onAddDnsRoute = { addRoute(RuleType.DNS) },
+                        onAction = ::handleScreenAction,
+                        onExport = ::handleExport,
+                        shouldConfirmDelete = { DataStore.confirmProfileDelete },
+                        exportWarningMessage = exportWarningMessage,
+                        onDismissExportWarning = { exportWarningMessage = null },
+                        onOpenDocumentation = {
+                            requireContext().launchCustomTab(
+                                "https://matsuridayo.github.io/nb4a-route/",
+                            )
+                        },
+                        onEnabledChange = ::setRuleEnabled,
+                        onEdit = ::editRule,
+                        onDuplicate = ::duplicateRule,
+                        onDelete = ::deleteRule,
+                        onMove = ::move,
+                        onMoveFinished = ::commitMove,
+                    )
+                }
+            }
+        }
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         activity = requireActivity() as MainActivity
 
-        ViewCompat.setOnApplyWindowInsetsListener(view, ListListener)
-        toolbar.setTitle(R.string.menu_route)
-        toolbar.inflateMenu(R.menu.add_route_menu)
-        toolbar.setOnMenuItemClickListener(this)
+        undoManager = UndoSnackbarManager(activity, this)
+        ProfileManager.addListener(this)
+        runOnDefaultDispatcher { reload() }
+    }
 
-        ruleListView = view.findViewById(R.id.route_list)
-        ruleListView.layoutManager = FixedLinearLayoutManager(ruleListView)
-        ruleAdapter = RuleAdapter()
-        ProfileManager.addListener(ruleAdapter)
-        ruleListView.adapter = ruleAdapter
-        undoManager = UndoSnackbarManager(activity, ruleAdapter)
-
-        ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, ItemTouchHelper.START) {
-
-            override fun getSwipeDirs(
-                recyclerView: RecyclerView,
-                viewHolder: RecyclerView.ViewHolder,
-            ) = if (viewHolder is RuleAdapter.DocumentHolder) {
-                0
-            } else {
-                super.getSwipeDirs(recyclerView, viewHolder)
-            }
-
-            override fun getDragDirs(
-                recyclerView: RecyclerView,
-                viewHolder: RecyclerView.ViewHolder,
-            ) = if (viewHolder is RuleAdapter.DocumentHolder) {
-                0
-            } else {
-                super.getDragDirs(recyclerView, viewHolder)
-            }
-
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                val index = viewHolder.bindingAdapterPosition
-                ruleAdapter.remove(index)
-                undoManager.remove(index to (viewHolder as RuleAdapter.RuleHolder).rule)
-            }
-
-            override fun onMove(
-                recyclerView: RecyclerView,
-                viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder,
-            ): Boolean {
-                return if (target is RuleAdapter.DocumentHolder) {
-                    false
-                } else {
-                    ruleAdapter.move(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
-                    true
-                }
-            }
-
-            override fun clearView(
-                recyclerView: RecyclerView,
-                viewHolder: RecyclerView.ViewHolder,
-            ) {
-                super.clearView(recyclerView, viewHolder)
-                ruleAdapter.commitMove()
-            }
-        }).attachToRecyclerView(ruleListView)
+    override fun onDestroyView() {
+        if (::undoManager.isInitialized) undoManager.flush()
+        ProfileManager.removeListener(this)
+        movedRules.clear()
+        rules.clear()
+        exportWarningMessage = null
+        super.onDestroyView()
     }
 
     override fun onDestroy() {
-        if (::ruleAdapter.isInitialized) {
-            ProfileManager.removeListener(ruleAdapter)
-        }
         super.onDestroy()
     }
 
-    override fun onMenuItemClick(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.action_new_route -> {
-                startActivity(Intent(context, RouteSettingsActivity::class.java))
-            }
-            R.id.action_reset_route -> {
-                MaterialAlertDialogBuilder(activity).setTitle(R.string.confirm)
-                    .setMessage(R.string.clear_profiles_message)
-                    .setPositiveButton(R.string.yes) { _, _ ->
-                        runOnDefaultDispatcher {
-                            SagerDatabase.rulesDao.reset()
-                            DataStore.rulesFirstCreate = false
-                            ruleAdapter.reload()
-                        }
-                    }
-                    .setNegativeButton(R.string.no, null)
-                    .show()
-            }
-            R.id.action_manage_assets -> {
-                startActivity(Intent(requireContext(), AssetsActivity::class.java))
-            }
+    private suspend fun reload() {
+        val loaded = ProfileManager.getRules().filterNot { PendingRouteDeletions.contains(it.id) }
+        onMainDispatcher {
+            rules.clear()
+            rules.addAll(loaded)
         }
-        return true
     }
 
-    inner class RuleAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>(), ProfileManager.RuleListener, UndoSnackbarManager.Interface<RuleEntity> {
-
-        val ruleList = ArrayList<RuleEntity>()
-        suspend fun reload() {
-            val rules = ProfileManager.getRules()
-            ruleListView.post {
-                ruleList.clear()
-                ruleList.addAll(rules)
-                ruleAdapter.notifyDataSetChanged()
+    private fun addRoute(type: RuleType) {
+        startActivity(Intent(requireContext(), RouteSettingsActivity::class.java).apply {
+            if (type == RuleType.DNS) {
+                putExtra(RouteSettingsActivity.EXTRA_ROUTE_TYPE, RuleType.DNS.value)
             }
-        }
+        })
+    }
 
-        init {
-            runOnDefaultDispatcher {
-                reload()
-            }
-        }
-
-        override fun onCreateViewHolder(
-            parent: ViewGroup,
-            viewType: Int,
-        ): RecyclerView.ViewHolder {
-            return if (viewType == 0) {
-                DocumentHolder(LayoutEmptyRouteBinding.inflate(layoutInflater, parent, false))
-            } else {
-                RuleHolder(LayoutRouteItemBinding.inflate(layoutInflater, parent, false))
-            }
-        }
-
-        override fun getItemViewType(position: Int): Int {
-            if (position == 0) return 0
-            return 1
-        }
-
-        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-            if (holder is DocumentHolder) {
-                holder.bind()
-            } else if (holder is RuleHolder) {
-                holder.bind(ruleList[position - 1])
-            }
-        }
-
-        override fun getItemCount(): Int {
-            return ruleList.size + 1
-        }
-
-        override fun getItemId(position: Int): Long {
-            if (position == 0) return 0L
-            return ruleList[position - 1].id
-        }
-
-        private val updated = HashSet<RuleEntity>()
-        fun move(from: Int, to: Int) {
-            val first = ruleList[from - 1]
-            var previousOrder = first.userOrder
-            val (step, range) = if (from < to) Pair(1, from - 1 until to - 1) else Pair(-1, to downTo from - 1)
-            for (i in range) {
-                val next = ruleList[i + step]
-                val order = next.userOrder
-                next.userOrder = previousOrder
-                previousOrder = order
-                ruleList[i] = next
-                updated.add(next)
-            }
-            first.userOrder = previousOrder
-            ruleList[to - 1] = first
-            updated.add(first)
-            notifyItemMoved(from, to)
-        }
-
-        fun commitMove() = runOnDefaultDispatcher {
-            if (updated.isNotEmpty()) {
-                SagerDatabase.rulesDao.updateRules(updated.toList())
-                updated.clear()
-                needReload()
-            }
-        }
-
-        fun remove(index: Int) {
-            ruleList.removeAt(index - 1)
-            notifyItemRemoved(index)
-        }
-
-        override fun undo(actions: List<Pair<Int, RuleEntity>>) {
-            for ((index, item) in actions) {
-                ruleList.add(index - 1, item)
-                notifyItemInserted(index)
-            }
-        }
-
-        override fun commit(actions: List<Pair<Int, RuleEntity>>) {
-            val rules = actions.map { it.second }
-            runOnDefaultDispatcher {
-                ProfileManager.deleteRules(rules)
-            }
-        }
-
-        override suspend fun onAdd(rule: RuleEntity) {
-            ruleListView.post {
-                ruleList.add(rule)
-                ruleAdapter.notifyItemInserted(ruleList.size)
-                needReload()
-            }
-        }
-
-        override suspend fun onUpdated(rule: RuleEntity) {
-            val index = ruleList.indexOfFirst { it.id == rule.id }
-            if (index == -1) return
-            ruleListView.post {
-                ruleList[index] = rule
-                ruleAdapter.notifyItemChanged(index + 1)
-                needReload()
-            }
-        }
-
-        override suspend fun onRemoved(ruleId: Long) {
-            val index = ruleList.indexOfFirst { it.id == ruleId }
-            if (index == -1) {
-                onMainDispatcher {
-                    needReload()
-                }
-            } else ruleListView.post {
-                ruleList.removeAt(index)
-                ruleAdapter.notifyItemRemoved(index + 1)
-                needReload()
-            }
-        }
-
-        override suspend fun onCleared() {
-            ruleListView.post {
-                ruleList.clear()
-                ruleAdapter.notifyDataSetChanged()
-                needReload()
-            }
-        }
-
-        inner class DocumentHolder(binding: LayoutEmptyRouteBinding) : RecyclerView.ViewHolder(binding.root) {
-            fun bind() {
-                itemView.setOnClickListener {
-                    it.context.launchCustomTab("https://matsuridayo.github.io/nb4a-route/")
+    private fun handleScreenAction(action: RouteScreenAction) {
+        when (action) {
+            RouteScreenAction.RESET -> {
+                runOnDefaultDispatcher {
+                    SagerDatabase.rulesDao.reset()
+                    DataStore.rulesFirstCreate = false
+                    reload()
                 }
             }
+            RouteScreenAction.MANAGE_ASSETS -> {
+                startActivity(Intent(requireContext(), AssetsActivity::class.java))
+            }
+            RouteScreenAction.IMPORT_CLIPBOARD -> {
+                activity.requestRoutingImport(SagerNet.getClipboardText())
+            }
         }
+    }
 
-        inner class RuleHolder(binding: LayoutRouteItemBinding) : RecyclerView.ViewHolder(binding.root) {
+    private fun handleExport(
+        format: RouteScreenExportFormat,
+        destination: RouteScreenExportDestination,
+        name: String,
+    ) = requestRoutingExport(
+        when (format) {
+            RouteScreenExportFormat.NEKOBOX_PLUS -> RoutingProfileFormat.NEKOBOX_PLUS
+            RouteScreenExportFormat.HAPP -> RoutingProfileFormat.HAPP
+            RouteScreenExportFormat.INCY -> RoutingProfileFormat.INCY
+        },
+        when (destination) {
+            RouteScreenExportDestination.CLIPBOARD -> RoutingExportDestination.CLIPBOARD
+            RouteScreenExportDestination.SHARE -> RoutingExportDestination.SHARE
+            RouteScreenExportDestination.QR_CODE -> RoutingExportDestination.QR_CODE
+        },
+        name,
+    )
 
-            lateinit var rule: RuleEntity
-            val profileName = binding.profileName
-            val profileType = binding.profileType
-            val routeOutbound = binding.routeOutbound
-            val editButton = binding.edit
-            val shareLayout = binding.share
-            val enableSwitch = binding.enable
+    private enum class RoutingExportDestination { CLIPBOARD, SHARE, QR_CODE }
 
-            fun bind(ruleEntity: RuleEntity) {
-                rule = ruleEntity
-                profileName.text = rule.displayName()
-                profileType.text = rule.mkSummary()
-                routeOutbound.text = rule.displayOutbound()
-
-                // 根据路由类型设置文字颜色
-                val colorRes = when (rule.outbound) {
-                    -2L -> R.color.color_route_block   // 屏蔽：红色
-                    -1L -> R.color.color_route_direct  // 直连：绿色
-                    0L -> R.color.color_route_proxy    // 代理：蓝色
-                    else -> R.color.color_route_config // 配置：紫色
-                }
-                routeOutbound.setTextColor(ContextCompat.getColor(itemView.context, colorRes))
-
-                itemView.setOnClickListener(null)
-                itemView.isClickable = false
-                itemView.isFocusable = false
-                enableSwitch.setOnCheckedChangeListener(null)
-                enableSwitch.isChecked = rule.enabled
-                enableSwitch.setOnCheckedChangeListener { _, isChecked ->
-                    runOnDefaultDispatcher {
-                        rule.enabled = isChecked
-                        SagerDatabase.rulesDao.updateRule(rule)
-                        onMainDispatcher {
-                            needReload()
+    private fun requestRoutingExport(
+        format: RoutingProfileFormat,
+        destination: RoutingExportDestination,
+        name: String,
+    ) {
+        runOnDefaultDispatcher {
+            val result = RoutingProfileExporter.export(
+                format,
+                name,
+                SagerDatabase.rulesDao.allRules(),
+            )
+            onMainDispatcher {
+                if (!isAdded || view == null) return@onMainDispatcher
+                val completed = when (destination) {
+                    RoutingExportDestination.CLIPBOARD -> {
+                        val copied = SagerNet.trySetPrimaryClip(result.link)
+                        when {
+                            !copied -> activity.snackbar(R.string.action_export_err).show()
+                            result.warnings.isEmpty() -> {
+                                activity.snackbar(R.string.action_export_msg).show()
+                            }
                         }
+                        copied
+                    }
+                    RoutingExportDestination.SHARE -> {
+                        startActivity(Intent.createChooser(
+                            Intent(Intent.ACTION_SEND)
+                                .setType("text/plain")
+                                .putExtra(Intent.EXTRA_TEXT, result.link),
+                            getString(R.string.share),
+                        ))
+                        true
+                    }
+                    RoutingExportDestination.QR_CODE -> {
+                        QRCodeDialog(result.link, name)
+                            .showAllowingStateLoss(parentFragmentManager)
+                        true
                     }
                 }
-                editButton.setOnClickListener {
-                    startActivity(Intent(it.context, RouteSettingsActivity::class.java).apply {
-                        putExtra(RouteSettingsActivity.EXTRA_ROUTE_ID, rule.id)
-                    })
+                if (completed && result.warnings.isNotEmpty()) {
+                    exportWarningMessage = result.warnings.joinToString("\n") { warningText(it) }
                 }
             }
         }
+    }
 
+    private fun warningText(warning: RoutingExportWarning): String = getString(when (warning) {
+        RoutingExportWarning.UNSUPPORTED_RULES -> R.string.routing_export_warning_unsupported_rules
+        RoutingExportWarning.SIMPLIFIED_ORDER -> R.string.routing_export_warning_order
+        RoutingExportWarning.DNS_VALUES_OMITTED -> R.string.routing_export_warning_dns
+        RoutingExportWarning.DNS_HOST_VALUES_OMITTED -> R.string.routing_export_warning_hosts
+        RoutingExportWarning.CUSTOM_OUTBOUND_FALLBACK -> R.string.routing_export_warning_outbound_fallback
+    })
+
+    private fun setRuleEnabled(ruleId: Long, enabled: Boolean) {
+        val index = rules.indexOfFirst { it.id == ruleId }
+        if (index < 0) return
+        val rule = rules[index].copy(enabled = enabled)
+        rules[index] = rule
+        runOnDefaultDispatcher {
+            SagerDatabase.rulesDao.updateRule(rule)
+            onMainDispatcher { needReload() }
+        }
+    }
+
+    private fun editRule(ruleId: Long) {
+        startActivity(Intent(requireContext(), RouteSettingsActivity::class.java).apply {
+            putExtra(RouteSettingsActivity.EXTRA_ROUTE_ID, ruleId)
+        })
+    }
+
+    private fun duplicateRule(ruleId: Long) {
+        val rule = rules.firstOrNull { it.id == ruleId } ?: return
+        runOnDefaultDispatcher {
+            ProfileManager.duplicateRuleAfter(rule)
+            reload()
+            onMainDispatcher {
+                needReload()
+                Toast.makeText(requireContext(), R.string.route_duplicated, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun deleteRule(ruleId: Long) {
+        val index = rules.indexOfFirst { it.id == ruleId }
+        if (index < 0) return
+        val rule = rules[index]
+        val current = rules.indexOfFirst { it.id == ruleId }
+        if (current >= 0) {
+            PendingRouteDeletions.add(ruleId)
+            rules.removeAt(current)
+            runOnDefaultDispatcher { ProfileManager.deleteRules(listOf(rule)) }
+            undoManager.remove(current to rule)
+        }
+    }
+
+    private fun move(from: Int, requestedTo: Int) {
+        if (from !in rules.indices) return
+        val to = requestedTo.coerceIn(rules.indices)
+        if (from == to) return
+        val rule = rules.removeAt(from)
+        rules.add(to, rule)
+        rules.forEachIndexed { index, item ->
+            val order = (index + 1).toLong()
+            if (item.userOrder != order) {
+                val updated = item.copy(userOrder = order)
+                rules[index] = updated
+                movedRules += updated
+            }
+        }
+    }
+
+    private fun commitMove() {
+        if (movedRules.isEmpty()) return
+        val updates = movedRules.toList()
+        movedRules.clear()
+        runOnDefaultDispatcher {
+            SagerDatabase.rulesDao.updateRules(updates)
+            onMainDispatcher { needReload() }
+        }
+    }
+
+    override fun undo(actions: List<Pair<Int, RuleEntity>>) {
+        actions.forEach { (requestedIndex, rule) ->
+            PendingRouteDeletions.remove(rule.id)
+            rules.add(requestedIndex.coerceIn(0, rules.size), rule)
+        }
+        runOnDefaultDispatcher {
+            actions.forEach { (_, rule) ->
+                if (SagerDatabase.rulesDao.getById(rule.id) == null) {
+                    SagerDatabase.rulesDao.createRule(rule)
+                }
+            }
+            onMainDispatcher { needReload() }
+        }
+    }
+
+    override fun commit(actions: List<Pair<Int, RuleEntity>>) {
+        actions.forEach { PendingRouteDeletions.remove(it.second.id) }
+    }
+
+    override suspend fun onAdd(rule: RuleEntity) {
+        onMainDispatcher {
+            if (::undoManager.isInitialized) undoManager.flush()
+            if (!PendingRouteDeletions.contains(rule.id) && rules.none { it.id == rule.id }) {
+                rules += rule
+            }
+            needReload()
+        }
+    }
+
+    override suspend fun onUpdated(rule: RuleEntity) {
+        onMainDispatcher {
+            if (PendingRouteDeletions.contains(rule.id)) return@onMainDispatcher
+            val index = rules.indexOfFirst { it.id == rule.id }
+            if (index >= 0) rules[index] = rule
+            needReload()
+        }
+    }
+
+    override suspend fun onRemoved(ruleId: Long) {
+        onMainDispatcher {
+            rules.removeAll { it.id == ruleId }
+            needReload()
+        }
+    }
+
+    override suspend fun onCleared() {
+        onMainDispatcher {
+            rules.clear()
+            needReload()
+        }
     }
 
 }

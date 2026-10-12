@@ -1,16 +1,14 @@
 package moe.matsuri.nb4a.proxy.shadowtls
 
-import android.os.Bundle
-import androidx.preference.EditTextPreference
-import androidx.preference.PreferenceFragmentCompat
-import io.nekohasekai.sagernet.R
-import io.nekohasekai.sagernet.database.preference.EditTextPreferenceModifiers
+import androidx.compose.runtime.Composable
+import io.nekohasekai.sagernet.ui.compose.ShadowTLSProfileSettingsScreen
 import io.nekohasekai.sagernet.ui.profile.ProfileSettingsActivity
 import moe.matsuri.nb4a.proxy.PreferenceBinding
 import moe.matsuri.nb4a.proxy.PreferenceBindingManager
 import moe.matsuri.nb4a.proxy.Type
 
 class ShadowTLSSettingsActivity : ProfileSettingsActivity<ShadowTLSBean>() {
+    override val usesComposePreferences = true
 
     override fun createEntity() = ShadowTLSBean()
 
@@ -20,6 +18,7 @@ class ShadowTLSSettingsActivity : ProfileSettingsActivity<ShadowTLSBean>() {
     private val serverPort = pbm.add(PreferenceBinding(Type.TextToInt, "serverPort"))
     private val password = pbm.add(PreferenceBinding(Type.Text, "password"))
     private val version = pbm.add(PreferenceBinding(Type.TextToInt, "version"))
+    private val proxyProtocol = pbm.add(PreferenceBinding(Type.TextToInt, "proxyProtocol"))
     private val sni = pbm.add(PreferenceBinding(Type.Text, "sni"))
     private val alpn = pbm.add(PreferenceBinding(Type.Text, "alpn"))
     private val certificates = pbm.add(PreferenceBinding(Type.Text, "certificates"))
@@ -35,21 +34,7 @@ class ShadowTLSSettingsActivity : ProfileSettingsActivity<ShadowTLSBean>() {
         pbm.fromCacheAll(this)
     }
 
-    override fun PreferenceFragmentCompat.createPreferences(
-        savedInstanceState: Bundle?,
-        rootKey: String?,
-    ) {
-        addPreferencesFromResource(R.xml.shadowtls_preferences)
-        pbm.setPreferenceFragment(this)
-
-        serverPort.preference.apply {
-            this as EditTextPreference
-            setOnBindEditTextListener(EditTextPreferenceModifiers.Port)
-        }
-        password.preference.apply {
-            this as EditTextPreference
-            summaryProvider = PasswordSummaryProvider
-        }
-    }
+    @Composable
+    override fun ComposePreferences() = ShadowTLSProfileSettingsScreen()
 
 }

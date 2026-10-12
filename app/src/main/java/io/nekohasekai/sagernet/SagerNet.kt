@@ -12,27 +12,39 @@ import android.net.Network
 import android.os.Build
 import android.os.PowerManager
 import android.os.StrictMode
+import android.os.SystemClock
 import android.os.UserManager
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
+import com.google.android.material.color.DynamicColors
+import com.google.android.material.color.DynamicColorsOptions
 import go.Seq
+import io.nekohasekai.sagernet.bg.TProxyManager
+import io.nekohasekai.sagernet.bg.CoreRecoveryService
 import io.nekohasekai.sagernet.bg.SagerConnection
+import io.nekohasekai.sagernet.bg.ServiceLifecyclePolicy
+import io.nekohasekai.sagernet.bg.SubscriptionUpdater
+import io.nekohasekai.sagernet.bg.shouldSweepLibcoreMemory
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.isOss
 import io.nekohasekai.sagernet.ktx.isPreview
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
+import io.nekohasekai.sagernet.ktx.runOnIoDispatcher
 import io.nekohasekai.sagernet.ui.MainActivity
 import io.nekohasekai.sagernet.utils.*
 import kotlinx.coroutines.DEBUG_PROPERTY_NAME
 import kotlinx.coroutines.DEBUG_PROPERTY_VALUE_ON
+import kotlinx.coroutines.CancellationException
 import libcore.Libcore
 import moe.matsuri.nb4a.NativeInterface
 import moe.matsuri.nb4a.net.LocalResolverImpl
+import moe.matsuri.nb4a.ui.ConnectionTestNotification
 import moe.matsuri.nb4a.utils.JavaUtil
 import moe.matsuri.nb4a.utils.cleanWebview
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 import androidx.work.Configuration as WorkConfiguration
 
 class SagerNet : Application(),
@@ -44,7 +56,7 @@ class SagerNet : Application(),
         application = this
     }
 
-    private val nativeInterface = NativeInterface()
+    val nativeInterface = NativeInterface()
 
     val externalAssets: File by lazy { getExternalFilesDir(null) ?: filesDir }
     val process: String = JavaUtil.getProcessName()
@@ -56,40 +68,82 @@ class SagerNet : Application(),
 
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler)
 
+        if (isMainProcess && isTv) {
+            AppIconManager.set(this, AppIcon.NEKOBOX_PLUS)
+        }
+
         if (isMainProcess || isBgProcess) {
+            clearCacheAfterAppUpdate()
             externalAssets.mkdirs()
             Seq.setContext(this)
+            val logLevel = AppLogLevelController.initialize(DataStore.logLevel)
             Libcore.initCore(
                 process,
                 cacheDir.absolutePath + "/",
                 filesDir.absolutePath + "/",
                 externalAssets.absolutePath + "/",
                 DataStore.logBufSize,
-                DataStore.logLevel > 0,
+                logLevel.outputEnabled,
                 nativeInterface, nativeInterface, LocalResolverImpl
             )
+            if (!DataStore.enableCoreProfiling) {
+                deleteCoreProfilerData()
+            }
+            loadRootCACerts()
 
             // fix multi process issue in Android 9+
             JavaUtil.handleWebviewDir(this)
 
             runOnDefaultDispatcher {
+                runCatching { TProxyManager.reconcile(this@SagerNet) }.onFailure {
+                    Logs.w(getString(R.string.tproxy_cleanup_failed))
+                }
                 PackageCache.register()
                 cleanWebview()
             }
         }
 
         if (isMainProcess) {
+            DynamicColors.applyToActivitiesIfAvailable(
+                this,
+                DynamicColorsOptions.Builder()
+                    .setPrecondition { _, _ -> Theme.isMaterialYou() || CustomTheme.useDynamicColors() }
+                    .build()
+            )
             Theme.apply(this)
             Theme.applyNightTheme()
             AppLocale.apply()
+            if (DataStore.runningTest) {
+                DataStore.runningTest = false
+                ConnectionTestNotification.cancel(this)
+            }
             runOnDefaultDispatcher {
                 DefaultNetworkListener.start(this) {
                     underlyingNetwork = it
+                    nativeInterface.syncNetworkState(it)
                 }
-
-                updateNotificationChannels()
+            }
+            runOnIoDispatcher {
+                try {
+                    SubscriptionUpdater.cleanupOrphanedWork()
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    Logs.w("Unable to clean up subscription updater: ${error.message}")
+                }
+                try {
+                    SubscriptionUpdater.reconfigureUpdater()
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    Logs.w("Unable to reconfigure subscription updater: ${error.message}")
+                }
             }
         }
+
+        // The tile and boot receiver can start :bg without opening an activity.
+        // Channels must exist before any foreground service posts a notification.
+        if (isMainProcess || isBgProcess) updateNotificationChannels()
 
         if (BuildConfig.DEBUG) {
             System.setProperty(DEBUG_PROPERTY_NAME, DEBUG_PROPERTY_VALUE_ON)
@@ -101,6 +155,33 @@ class SagerNet : Application(),
                     .penaltyLog()
                     .build()
             )
+        }
+    }
+
+    private fun clearCacheAfterAppUpdate() {
+        runCatching {
+            val currentVersionCode = BuildConfig.VERSION_CODE
+            if (!AppVersionCachePolicy.shouldClearCache(
+                    DataStore.lastStartedVersionCode,
+                    currentVersionCode,
+                )
+            ) {
+                return
+            }
+
+            DataStore.lastStartedVersionCode = currentVersionCode
+            AppCache.clear(cacheDir)
+        }.onFailure {
+            Logs.w("Unable to clear app cache after version change: ${it.message}")
+        }
+    }
+
+    private fun deleteCoreProfilerData() {
+        runCatching {
+            File(cacheDir, "core-profiler").deleteRecursively()
+            File(cacheDir, "core-profiler-export").deleteRecursively()
+        }.onFailure {
+            Logs.w(it)
         }
     }
 
@@ -118,13 +199,28 @@ class SagerNet : Application(),
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
 
-        Libcore.forceGc()
+        if (isBgProcess && shouldSweepLibcoreMemory(level)) {
+            scheduleLibcoreGCSweep()
+        }
     }
 
     @SuppressLint("InlinedApi")
     companion object {
 
+        private val libcoreGCSweepRunning = AtomicBoolean()
+
         lateinit var application: SagerNet
+
+        internal fun scheduleLibcoreGCSweep() {
+            if (!libcoreGCSweepRunning.compareAndSet(false, true)) return
+            runOnDefaultDispatcher {
+                try {
+                    Libcore.performLibcoreGCSweep()
+                } finally {
+                    libcoreGCSweepRunning.set(false)
+                }
+            }
+        }
 
         val isTv by lazy {
             uiMode.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
@@ -178,6 +274,14 @@ class SagerNet : Application(),
                             application.getText(R.string.service_proxy),
                             NotificationManager.IMPORTANCE_LOW
                         ), NotificationChannel(
+                            "service-vpn-persistent",
+                            application.getText(R.string.service_vpn_persistent),
+                            NotificationManager.IMPORTANCE_LOW
+                        ).apply {
+                            setSound(null, null)
+                            enableVibration(false)
+                            setShowBadge(false)
+                        }, NotificationChannel(
                             "service-subscription",
                             application.getText(R.string.service_subscription),
                             NotificationManager.IMPORTANCE_DEFAULT
@@ -185,21 +289,66 @@ class SagerNet : Application(),
                             "connection-test",
                             application.getText(R.string.connection_test),
                             NotificationManager.IMPORTANCE_DEFAULT
+                        ), NotificationChannel(
+                            "sing-box-authentication",
+                            application.getText(R.string.sing_box_authentication),
+                            NotificationManager.IMPORTANCE_HIGH
                         )
                     )
                 )
             }
         }
 
-        fun startService() = ContextCompat.startForegroundService(
-            application, Intent(application, SagerConnection.serviceClass)
-        )
+        fun startService() {
+            CoreRecoveryService.updateStopWatchdog(
+                context = application,
+                serviceMode = DataStore.serviceMode,
+                connectionIntent = ServiceLifecyclePolicy.ConnectionIntent.Start,
+            )
+            ContextCompat.startForegroundService(
+                application,
+                Intent(application, SagerConnection.serviceClass)
+                    .putExtra(Action.EXTRA_PROFILE_ID, DataStore.selectedProxy)
+                    .putExtra(Action.EXTRA_REQUEST_ID, SystemClock.elapsedRealtimeNanos()),
+            )
+        }
 
-        fun reloadService() =
-            application.sendBroadcast(Intent(Action.RELOAD).setPackage(application.packageName))
+        fun reloadService(profileId: Long = DataStore.selectedProxy) {
+            CoreRecoveryService.updateStopWatchdog(
+                context = application,
+                serviceMode = DataStore.serviceMode,
+                connectionIntent = ServiceLifecyclePolicy.ConnectionIntent.Reload,
+            )
+            ContextCompat.startForegroundService(
+                application,
+                Intent(application, SagerConnection.serviceClass)
+                    .setAction(Action.RELOAD)
+                    .putExtra(Action.EXTRA_PROFILE_ID, profileId)
+                    .putExtra(Action.EXTRA_REQUEST_ID, SystemClock.elapsedRealtimeNanos()),
+            )
+        }
 
-        fun stopService() =
-            application.sendBroadcast(Intent(Action.CLOSE).setPackage(application.packageName))
+        fun stopService() {
+            CoreRecoveryService.updateStopWatchdog(
+                context = application,
+                serviceMode = DataStore.serviceMode,
+                connectionIntent = ServiceLifecyclePolicy.ConnectionIntent.Disconnect,
+            )
+            application.sendBroadcast(
+                Intent(Action.CLOSE)
+                    .setPackage(application.packageName)
+                    .putExtra(Action.EXTRA_REQUEST_ID, SystemClock.elapsedRealtimeNanos())
+            )
+        }
+
+        fun updateNotificationCountryIndicator(enabled: Boolean) {
+            application.sendBroadcast(
+                Intent(Action.UPDATE_NOTIFICATION_COUNTRY_INDICATOR)
+                    .setPackage(application.packageName)
+                    .putExtra(Action.EXTRA_REQUEST_ID, SystemClock.elapsedRealtimeNanos())
+                    .putExtra(Action.EXTRA_NOTIFICATION_COUNTRY_INDICATOR_ENABLED, enabled)
+            )
+        }
 
         var underlyingNetwork: Network? = null
 

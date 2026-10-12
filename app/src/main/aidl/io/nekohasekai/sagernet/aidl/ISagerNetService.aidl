@@ -1,14 +1,54 @@
 package io.nekohasekai.sagernet.aidl;
 
 import io.nekohasekai.sagernet.aidl.ISagerNetServiceCallback;
+import io.nekohasekai.sagernet.aidl.SpeedTestData;
 
 interface ISagerNetService {
   int getState();
   String getProfileName();
+  // JSON array of connected mixed/HTTP listeners; contains no credentials or full configuration.
+  String activeProxyListeners();
+  boolean isNetworkSharingConfigurable();
+  boolean isTProxyTetheringActive();
+  // Change LAN access or TPROXY tethering and request a full restart of the active generated profile.
+  // Returns acceptance of the restart request; callers must verify the new active listener.
+  boolean setNetworkSharingEnabled(boolean enabled);
 
   void registerCallback(in ISagerNetServiceCallback cb, int id);
   oneway void unregisterCallback(in ISagerNetServiceCallback cb);
   oneway void resetTraffic(in long[] profileIds);
 
-  int urlTest();
+  int urlTest(boolean automatic);
+  boolean claimAutomaticConnectionCheck();
+  String connectionTestStatus();
+  String connectionTestIpInfo();
+  void setConnectionTestPresentation(String status, String ipInfo);
+  oneway void startSpeedTest(long runId, int durationMillis, int connections, int serverMode, String serverValue, int finalResult);
+  oneway void stopSpeedTest(long runId);
+  SpeedTestData speedTestStatus();
+
+  String currentClashMode();
+  String clashModeList();
+  void setClashMode(String mode);
+  void setLogLevel(String level, boolean enabled);
+
+  String adblockStats();
+  String adblockFilterMetadata(String url);
+  String adblockFilterMetadataMap(String joinedUrls);
+  String adblockStoredFilterVersion(String url);
+  String adblockStoredFilterVersions(String joinedUrls);
+  String adblockPreCacheFilter(String url);
+  String adblockPreCacheFilters(String joinedUrls);
+  void adblockDeleteCachedFilter(String url);
+  void adblockDeleteCachedFilters(String joinedUrls);
+  void adblockReloadEngine();
+
+  boolean isCoreProfilingRunning();
+  boolean hasCoreProfilerSnapshot();
+  void performLibcoreGcSweep();
+  void triggerLibcoreCrash(String crashType);
+  void startCoreProfiling(int mode);
+  void stopCoreProfiling();
+  void writeCoreProfilerSnapshot(String outputDir);
+  void deleteCoreProfilerSnapshot();
 }

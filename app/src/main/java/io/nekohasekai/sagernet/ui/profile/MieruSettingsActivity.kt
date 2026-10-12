@@ -19,18 +19,14 @@
 
 package io.nekohasekai.sagernet.ui.profile
 
-import android.os.Bundle
-import androidx.preference.EditTextPreference
-import androidx.preference.PreferenceFragmentCompat
-import io.nekohasekai.sagernet.Key
-import io.nekohasekai.sagernet.R
+import androidx.compose.runtime.Composable
 import io.nekohasekai.sagernet.database.DataStore
-import io.nekohasekai.sagernet.database.preference.EditTextPreferenceModifiers
 import io.nekohasekai.sagernet.fmt.mieru.MieruBean
 import io.nekohasekai.sagernet.ktx.applyDefaultValues
-import moe.matsuri.nb4a.ui.SimpleMenuPreference
+import io.nekohasekai.sagernet.ui.compose.MieruProfileSettingsScreen
 
 class MieruSettingsActivity : ProfileSettingsActivity<MieruBean>() {
+    override val usesComposePreferences = true
 
     override fun createEntity() = MieruBean().applyDefaultValues()
 
@@ -38,40 +34,33 @@ class MieruSettingsActivity : ProfileSettingsActivity<MieruBean>() {
         DataStore.profileName = name
         DataStore.serverAddress = serverAddress
         DataStore.serverPort = serverPort
-        DataStore.serverProtocol = protocol
+        DataStore.serverPorts = portRange
+        DataStore.serverProtocolInt = protocol
         DataStore.serverUsername = username
         DataStore.serverPassword = password
-        DataStore.serverMTU = mtu
+        DataStore.serverMieruMuxLevel = multiplexingLevel
+        DataStore.serverMieruHandshakeMode = handshakeMode
+        DataStore.serverMieruTrafficPattern = trafficPattern
+        DataStore.serverMieruLowEntropyMode = lowEntropyMode
+        DataStore.serverMieruLowEntropyMaskRotation = lowEntropyMaskRotation
     }
 
     override fun MieruBean.serialize() {
         name = DataStore.profileName
         serverAddress = DataStore.serverAddress
         serverPort = DataStore.serverPort
-        protocol = DataStore.serverProtocol
+        portRange = DataStore.serverPorts
+        protocol = DataStore.serverProtocolInt
         username = DataStore.serverUsername
         password = DataStore.serverPassword
-        mtu = DataStore.serverMTU
+        multiplexingLevel = DataStore.serverMieruMuxLevel
+        handshakeMode = DataStore.serverMieruHandshakeMode
+        trafficPattern = DataStore.serverMieruTrafficPattern
+        lowEntropyMode = DataStore.serverMieruLowEntropyMode
+        lowEntropyMaskRotation = DataStore.serverMieruLowEntropyMaskRotation
     }
 
-    override fun PreferenceFragmentCompat.createPreferences(
-        savedInstanceState: Bundle?,
-        rootKey: String?,
-    ) {
-        addPreferencesFromResource(R.xml.mieru_preferences)
-        findPreference<EditTextPreference>(Key.SERVER_PORT)!!.apply {
-            setOnBindEditTextListener(EditTextPreferenceModifiers.Port)
-        }
-        findPreference<EditTextPreference>(Key.SERVER_PASSWORD)!!.apply {
-            summaryProvider = PasswordSummaryProvider
-        }
-        val protocol = findPreference<SimpleMenuPreference>(Key.SERVER_PROTOCOL)!!
-        val mtu = findPreference<EditTextPreference>(Key.SERVER_MTU)!!
-        mtu.isVisible = protocol.value.equals("UDP")
-        protocol.setOnPreferenceChangeListener { _, newValue ->
-            mtu.isVisible = newValue.equals("UDP")
-            true
-        }
-    }
+    @Composable
+    override fun ComposePreferences() = MieruProfileSettingsScreen()
 
 }

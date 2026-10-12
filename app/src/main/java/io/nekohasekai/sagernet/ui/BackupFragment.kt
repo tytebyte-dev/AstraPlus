@@ -6,13 +6,16 @@ import android.os.Bundle
 import android.os.Parcel
 import android.os.Parcelable
 import android.provider.OpenableColumns
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.content.FileProvider
-import androidx.core.view.isVisible
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.jakewharton.processphoenix.ProcessPhoenix
 import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.SagerNet
@@ -20,10 +23,19 @@ import io.nekohasekai.sagernet.bg.Executable
 import io.nekohasekai.sagernet.database.*
 import io.nekohasekai.sagernet.database.preference.KeyValuePair
 import io.nekohasekai.sagernet.database.preference.PublicDatabase
-import io.nekohasekai.sagernet.databinding.LayoutBackupBinding
-import io.nekohasekai.sagernet.databinding.LayoutImportBinding
-import io.nekohasekai.sagernet.databinding.LayoutProgressBinding
+import io.nekohasekai.sagernet.backup.BackupContainerCodec
+import io.nekohasekai.sagernet.backup.BackupPasswordException
+import io.nekohasekai.sagernet.backup.GitBackupConfig
+import io.nekohasekai.sagernet.backup.GitBackupConfigStore
+import io.nekohasekai.sagernet.backup.InvalidBackupContainerException
+import io.nekohasekai.sagernet.backup.GitBackupRepository
+import io.nekohasekai.sagernet.backup.UnsupportedBackupVersionException
 import io.nekohasekai.sagernet.ktx.*
+import io.nekohasekai.sagernet.ui.compose.BackupScreen
+import io.nekohasekai.sagernet.ui.compose.BackupSelection
+import io.nekohasekai.sagernet.ui.compose.GitRestoreOption
+import io.nekohasekai.sagernet.ui.compose.NekoComposeTheme
+import io.nekohasekai.sagernet.ui.compose.showBlockingProgressDialog
 import kotlinx.coroutines.delay
 import moe.matsuri.nb4a.utils.Util
 import org.json.JSONArray
@@ -49,18 +61,49 @@ import java.util.zip.Deflater
 import java.io.BufferedOutputStream
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
-class BackupFragment : NamedFragment(R.layout.layout_backup) {
+class BackupFragment : NamedFragment() {
 
-    private lateinit var binding: LayoutBackupBinding
-    private lateinit var backupData: ByteArray
-    private var isWebDAVBackup = false
     private var isBackupInProgress = false
+    private var backupProgressDialog: androidx.activity.ComponentDialog? = null
+    private var pendingExportOptions: BackupOptions? = null
     private var isRestoreInProgress = false
     private var currentJob: kotlinx.coroutines.Job? = null
     private var snackbar: Snackbar? = null
     private var restoreJob: kotlinx.coroutines.Job? = null
+    private var isGitOperationInProgress by mutableStateOf(false)
+    private var gitConfigured by mutableStateOf(false)
+    private var gitProgressDialog: androidx.activity.ComponentDialog? = null
+    private var gitRestoreOptions by mutableStateOf<List<GitRestoreOption>?>(null)
+    private var gitRestoreConfig: GitBackupConfig? = null
+    private var showGitCompactDialog by mutableStateOf(false)
+
+    private val gitSettings = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) {
+        updateGitButtons()
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        childFragmentManager.setFragmentResultListener(
+            BackupImportDialogFragment.RESULT_KEY,
+            this,
+        ) { _, result ->
+            val file = result.getString(BackupImportDialogFragment.RESULT_FILE) ?: return@setFragmentResultListener
+            importBackup(
+                File(file),
+                result.getBoolean(BackupImportDialogFragment.RESULT_PROFILES),
+                result.getBoolean(BackupImportDialogFragment.RESULT_RULES),
+                result.getBoolean(BackupImportDialogFragment.RESULT_SETTINGS),
+            )
+        }
+    }
 
     override fun onDestroyView() {
+        backupProgressDialog?.dismiss()
+        backupProgressDialog = null
+        gitProgressDialog?.dismiss()
+        gitProgressDialog = null
         super.onDestroyView()
         snackbar?.dismiss()
         snackbar = null
@@ -81,12 +124,15 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
 
     override fun name0() = app.getString(R.string.backup)
 
-    var content = ""
     private val exportSettings = registerForActivityResult(ActivityResultContracts.CreateDocument()) { data ->
-        if (data != null) {
-            runOnDefaultDispatcher {
+        val options = pendingExportOptions
+        pendingExportOptions = null
+        if (data != null && options != null) {
+            val activity = requireActivity()
+            beginBackupOperation {
                 try {
-                    requireActivity().contentResolver.openOutputStream(data)!!.use { os ->
+                    val backupData = doBackup(options.profile, options.rule, options.setting)
+                    activity.contentResolver.openOutputStream(data)!!.use { os ->
                         os.write(backupData)
                     }
                     onMainDispatcher {
@@ -102,102 +148,336 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
         }
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        val binding = LayoutBackupBinding.bind(view)
-
-        binding.actionExport.setOnClickListener {
-            runOnDefaultDispatcher {
-                backupData = doBackup(
-                    binding.backupConfigurations.isChecked,
-                    binding.backupRules.isChecked,
-                    binding.backupSettings.isChecked
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View = ComposeView(requireContext()).apply {
+        setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        setContent {
+            NekoComposeTheme {
+                BackupScreen(
+                    gitConfigured = gitConfigured,
+                    gitOperationInProgress = isGitOperationInProgress,
+                    onShare = ::shareBackup,
+                    onExport = ::exportBackup,
+                    onImport = { startFilesForResult(importFile, "*/*") },
+                    onWebDavSettings = {
+                        startActivity(Intent(requireContext(), WebDAVSettingsActivity::class.java))
+                    },
+                    onWebDavBackup = ::startWebDavBackup,
+                    onWebDavRestore = ::startWebDavRestore,
+                    onGitConfigure = {
+                        gitSettings.launch(Intent(requireContext(), GitBackupSettingsActivity::class.java))
+                    },
+                    onGitBackup = ::backupToGit,
+                    onGitRestore = ::restoreFromGit,
+                    onGitCompact = ::showCompactDialog,
+                    gitRestoreOptions = gitRestoreOptions,
+                    onDismissGitRestore = ::dismissGitRestore,
+                    onSelectGitRestore = ::selectGitRestore,
+                    showGitCompactDialog = showGitCompactDialog,
+                    onDismissGitCompact = { showGitCompactDialog = false },
+                    onConfirmGitCompact = ::confirmGitCompact,
                 )
-                onMainDispatcher {
-                    startFilesForResult(
-                        exportSettings, "nekobox_backup_${Date().toLocaleString()}.json"
-                    )
-                }
             }
         }
+    }
 
-        binding.actionShare.setOnClickListener {
-            runOnDefaultDispatcher {
-                backupData = doBackup(
-                    binding.backupConfigurations.isChecked,
-                    binding.backupRules.isChecked,
-                    binding.backupSettings.isChecked
-                )
+    private fun exportBackup(selection: BackupSelection) {
+        if (isBackupInProgress) {
+            showMessage(R.string.backup_in_progress)
+            return
+        }
+        pendingExportOptions = BackupOptions(
+            selection.configurations,
+            selection.rules,
+            selection.settings,
+        )
+        startFilesForResult(
+            exportSettings, "nekobox_backup_${Date().toLocaleString()}.json"
+        )
+    }
+
+    private fun shareBackup(selection: BackupSelection) {
+        val activity = requireActivity()
+        val options = BackupOptions(
+            selection.configurations,
+            selection.rules,
+            selection.settings,
+        )
+        beginBackupOperation {
+            try {
+                val backupData = doBackup(options.profile, options.rule, options.setting)
                 app.cacheDir.mkdirs()
                 val cacheFile = File(
                     app.cacheDir, "nekobox_backup_${Date().toLocaleString()}.json"
                 )
                 cacheFile.writeBytes(backupData)
                 onMainDispatcher {
-                    startActivity(
-                        Intent.createChooser(
-                            Intent(Intent.ACTION_SEND).setType("application/json")
-                                .setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                .putExtra(
-                                    Intent.EXTRA_STREAM, FileProvider.getUriForFile(
-                                        app, BuildConfig.APPLICATION_ID + ".cache", cacheFile
-                                    )
-                                ), app.getString(R.string.abc_shareactionprovider_share_with)
+                    if (isAdded) {
+                        startActivity(
+                            Intent.createChooser(
+                                Intent(Intent.ACTION_SEND).setType("application/json")
+                                    .setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    .putExtra(
+                                        Intent.EXTRA_STREAM, FileProvider.getUriForFile(
+                                            app, BuildConfig.APPLICATION_ID + ".cache", cacheFile
+                                        )
+                                    ), app.getString(R.string.abc_shareactionprovider_share_with)
+                            )
                         )
-                    )
+                    }
                 }
-
+            } catch (e: Exception) {
+                Logs.w(e)
+                onMainDispatcher {
+                    MessageStore.showMessage(activity, e.readableMessage)
+                }
             }
-        }
-
-        binding.actionImportFile.setOnClickListener {
-            startFilesForResult(importFile, "*/*")
-        }
-
-        setupWebDAV(binding)
-    }
-
-    private fun setupWebDAV(binding: LayoutBackupBinding) {
-        binding.webdavSettings.setOnClickListener {
-            startActivity(Intent(requireContext(), WebDAVSettingsActivity::class.java))
-        }
-        
-        binding.backupToWebdav.setOnClickListener {
-            if (DataStore.webdavServer.isNullOrEmpty()) {
-                showMessage(R.string.webdav_server_empty)
-                return@setOnClickListener
-            }
-            backupToWebDAV()
-        }
-        
-        binding.restoreFromWebdav.setOnClickListener {
-            if (DataStore.webdavServer.isNullOrEmpty()) {
-                showMessage(R.string.webdav_server_empty)
-                return@setOnClickListener
-            }
-            restoreFromWebDAV()
         }
     }
 
-    private fun backupToWebDAV() {
+    override fun onResume() {
+        super.onResume()
+        updateGitButtons()
+    }
+
+    private fun updateGitButtons() {
+        if (isAdded) gitConfigured = GitBackupConfigStore(requireContext()).load() != null
+    }
+
+    private fun gitConfig(): GitBackupConfig? {
+        return GitBackupConfigStore(requireContext()).load().also {
+            if (it == null) {
+                gitSettings.launch(Intent(requireContext(), GitBackupSettingsActivity::class.java))
+            }
+        }
+    }
+
+    private fun gitRepository() = GitBackupRepository(app.cacheDir.resolve("git-backup-repository"))
+
+    private fun beginGitOperation(@StringRes status: Int, block: (GitBackupConfig) -> Unit) {
+        if (isGitOperationInProgress) {
+            showMessage(R.string.git_operation_in_progress)
+            return
+        }
+        val config = gitConfig() ?: return
+        isGitOperationInProgress = true
+        updateGitButtons()
+        gitProgressDialog = requireContext().showBlockingProgressDialog(status)
+        block(config)
+    }
+
+    private fun finishGitOperation() {
+        isGitOperationInProgress = false
+        gitProgressDialog?.dismiss()
+        gitProgressDialog = null
+        if (isAdded) updateGitButtons()
+    }
+
+    private fun beginBackupOperation(block: suspend kotlinx.coroutines.CoroutineScope.() -> Unit) {
         if (isBackupInProgress) {
             showMessage(R.string.backup_in_progress)
             return
         }
         isBackupInProgress = true
-        val activity = requireActivity()
+        backupProgressDialog =
+            requireContext().showBlockingProgressDialog(R.string.backup_creating)
         runOnDefaultDispatcher {
             try {
-                isWebDAVBackup = true
+                block()
+            } finally {
+                onMainDispatcher { finishBackupOperation() }
+            }
+        }
+    }
+
+    private fun finishBackupOperation() {
+        isBackupInProgress = false
+        backupProgressDialog?.dismiss()
+        backupProgressDialog = null
+    }
+
+    private fun backupToGit() = beginGitOperation(R.string.git_backing_up) { config ->
+        val activity = requireActivity()
+        currentJob = runOnDefaultDispatcher {
+            runCatching {
+                val json = doBackup(profile = true, rule = true, setting = true, zip = false)
+                val encrypted = BackupContainerCodec.encrypt(
+                    json,
+                    config.encryptionPassword.toCharArray(),
+                )
+                gitRepository().backup(config, encrypted)
+            }.onSuccess {
+                onMainDispatcher {
+                    MessageStore.showMessage(activity, R.string.git_backup_success)
+                }
+            }.onFailure {
+                Logs.w(it)
+                onMainDispatcher {
+                    MessageStore.showMessage(
+                        activity,
+                        getString(R.string.git_backup_failed, gitErrorMessage(it)),
+                    )
+                }
+            }
+            onMainDispatcher { finishGitOperation() }
+        }
+    }
+
+    private fun restoreFromGit() = beginGitOperation(R.string.git_loading_versions) { config ->
+        val activity = requireActivity()
+        currentJob = runOnDefaultDispatcher {
+            runCatching { gitRepository().listRestorePoints(config) }
+                .onSuccess { points ->
+                    onMainDispatcher {
+                        finishGitOperation()
+                        if (!isAdded) return@onMainDispatcher
+                        if (points.isEmpty()) {
+                            showMessage(R.string.git_no_backups)
+                            return@onMainDispatcher
+                        }
+                        gitRestoreConfig = config
+                        gitRestoreOptions = points.map {
+                            val date = java.text.DateFormat.getDateTimeInstance().format(Date(it.timestampMillis))
+                            GitRestoreOption(
+                                commitId = it.commitId,
+                                label = "$date  •  ${it.commitId.take(8)}",
+                            )
+                        }
+                    }
+                }.onFailure {
+                    Logs.w(it)
+                    onMainDispatcher {
+                        finishGitOperation()
+                        MessageStore.showMessage(
+                            activity,
+                            getString(R.string.git_restore_failed, gitErrorMessage(it)),
+                        )
+                    }
+                }
+        }
+    }
+
+    private fun loadGitRestore(config: GitBackupConfig, commitId: String) =
+        beginGitOperation(R.string.git_loading_backup) {
+            val activity = requireActivity()
+            currentJob = runOnDefaultDispatcher {
+                runCatching {
+                    val encrypted = gitRepository().readBackup(config, commitId)
+                    val json = BackupContainerCodec.decrypt(
+                        encrypted,
+                        config.encryptionPassword.toCharArray(),
+                    )
+                    JSONObject(json.toString(Charsets.UTF_8))
+                }.onSuccess { json ->
+                    onMainDispatcher {
+                        finishGitOperation()
+                        if (isAdded) showGitImport(json)
+                    }
+                }.onFailure {
+                    Logs.w(it)
+                    onMainDispatcher {
+                        finishGitOperation()
+                        MessageStore.showMessage(
+                            activity,
+                            getString(R.string.git_restore_failed, gitErrorMessage(it)),
+                        )
+                    }
+                }
+            }
+        }
+
+    private fun showGitImport(json: JSONObject) {
+        showImportDialog(json, showGitWarning = true)
+    }
+
+    private fun showCompactDialog() {
+        showGitCompactDialog = true
+    }
+
+    private fun confirmGitCompact(value: String) {
+        showGitCompactDialog = false
+        val versions = value.toIntOrNull()
+        if (versions == null || versions !in 1..10000) {
+            showMessage(R.string.git_invalid_configuration)
+        } else compactGit(versions)
+    }
+
+    private fun dismissGitRestore() {
+        gitRestoreOptions = null
+        gitRestoreConfig = null
+    }
+
+    private fun selectGitRestore(commitId: String) {
+        val config = gitRestoreConfig ?: return
+        dismissGitRestore()
+        loadGitRestore(config, commitId)
+    }
+
+    private fun compactGit(versions: Int) =
+        beginGitOperation(R.string.git_compacting) { config ->
+        val activity = requireActivity()
+        currentJob = runOnDefaultDispatcher {
+            runCatching { gitRepository().compact(config, versions) }
+                .onSuccess { result ->
+                    onMainDispatcher {
+                        finishGitOperation()
+                        MessageStore.showMessage(
+                            activity,
+                            if (result.changed) {
+                                getString(R.string.git_compact_success, result.retainedVersions)
+                            } else {
+                                getString(R.string.git_compact_not_needed, result.retainedVersions)
+                            },
+                        )
+                    }
+                }.onFailure {
+                    Logs.w(it)
+                    onMainDispatcher {
+                        finishGitOperation()
+                        MessageStore.showMessage(
+                            activity,
+                            getString(R.string.git_backup_failed, gitErrorMessage(it)),
+                        )
+                    }
+                }
+            }
+        }
+
+    private fun startWebDavBackup() {
+        if (DataStore.webdavServer.isNullOrEmpty()) {
+            showMessage(R.string.webdav_server_empty)
+            return
+        }
+        backupToWebDAV()
+    }
+
+    private fun startWebDavRestore() {
+        if (DataStore.webdavServer.isNullOrEmpty()) {
+            showMessage(R.string.webdav_server_empty)
+            return
+        }
+        restoreFromWebDAV()
+    }
+
+    private fun backupToWebDAV() {
+        val activity = requireActivity()
+        beginBackupOperation {
+            try {
                 val backupData = doBackup(
                     true,  // 备份配置和分组
                     true,  // 备份路由规则
-                    true   // 备份设置
+                    true,  // 备份设置
+                    zip = true,
                 )
-                isWebDAVBackup = false
                 
-                val client = OkHttpClient()
+                val client = OkHttpClient.Builder()
+                    .connectTimeout(5, TimeUnit.MINUTES)
+                    .readTimeout(5, TimeUnit.MINUTES)
+                    .writeTimeout(5, TimeUnit.MINUTES)
+                    .build()
 
                 // 规范化 URL
                 val baseUrl = DataStore.webdavServer!!.trimEnd('/')
@@ -304,7 +584,6 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                     MessageStore.showMessage(activity, R.string.webdav_backup_success)
                 }
             } catch (e: Exception) {
-                isWebDAVBackup = false  // 确保发生异常时也重置标志
                 Logs.w(e)
 
                 val errorMessage = try {
@@ -320,8 +599,6 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                 onMainDispatcher {
                     MessageStore.showMessage(activity, errorMessage)
                 }
-            } finally {
-                isBackupInProgress = false
             }
         }
     }
@@ -457,58 +734,7 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                         return@onMainDispatcher
                     }
 
-                    val import = LayoutImportBinding.inflate(layoutInflater)
-                    if (!json.has("profiles")) {
-                        import.backupConfigurations.isVisible = false
-                    }
-                    if (!json.has("rules")) {
-                        import.backupRules.isVisible = false
-                    }
-                    if (!json.has("settings")) {
-                        import.backupSettings.isVisible = false
-                    }
-
-                    MaterialAlertDialogBuilder(requireContext()).setTitle(R.string.backup_import)
-                        .setView(import.root)
-                        .setPositiveButton(R.string.backup_import) { _, _ ->
-                            SagerNet.stopService()
-
-                            val binding = LayoutProgressBinding.inflate(layoutInflater)
-                            binding.content.text = getString(R.string.backup_importing)
-                            val dialog = AlertDialog.Builder(requireContext())
-                                .setView(binding.root)
-                                .setCancelable(false)
-                                .show()
-                            runOnDefaultDispatcher {
-                                runCatching {
-                                    // 再次检查是否已被取消
-                                    if (!isAdded) {
-                                        MessageStore.showMessage(activity, R.string.restore_cancelled)
-                                        return@runOnDefaultDispatcher
-                                    }
-                                    finishImport(
-                                        json,
-                                        import.backupConfigurations.isChecked,
-                                        import.backupRules.isChecked,
-                                        import.backupSettings.isChecked
-                                    )
-                                    ProcessPhoenix.triggerRebirth(
-                                        activity, Intent(activity, MainActivity::class.java)
-                                    )
-                                }.onFailure {
-                                    Logs.w(it)
-                                    onMainDispatcher {
-                                        MessageStore.showMessage(activity, it.readableMessage)
-                                    }
-                                }
-
-                                onMainDispatcher {
-                                    dialog.dismiss()
-                                }
-                            }
-                        }
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .show()
+                    showImportDialog(json)
                 }
             } catch (e: Exception) {
                 Logs.w(e)
@@ -534,14 +760,22 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
     private fun doBackup(
         profile: Boolean,
         rule: Boolean,
-        setting: Boolean
+        setting: Boolean,
+        zip: Boolean = false,
     ): ByteArray {
         val out = JSONObject().apply {
             put("version", 1)
             if (profile) {
                 put("profiles", JSONArray().apply {
-                    SagerDatabase.proxyDao.getAll().forEach {
-                        put(it.toBase64Str())
+                    val proxyDao = SagerDatabase.proxyDao
+                    proxyDao.getAllIds().forEach { profileId ->
+                        proxyDao.getById(profileId)?.let {
+                            if (it.beanOrNull() == null) {
+                                Logs.w("Skipping invalid profile during backup: id=${it.id}, type=${it.type}")
+                                return@let
+                            }
+                            put(it.toBase64Str())
+                        }
                     }
                 })
 
@@ -557,6 +791,11 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
                         put(it.toBase64Str())
                     }
                 })
+                put("customDnsServers", JSONArray().apply {
+                    CustomDnsServerStore.allServers().forEach {
+                        put(it.toBase64Str())
+                    }
+                })
             }
             if (setting) {
                 put("settings", JSONArray().apply {
@@ -568,7 +807,7 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
         }
 
         val jsonContent = out.toStringPretty()
-        return if (isWebDAVBackup) {
+        return if (zip) {
             ByteArrayOutputStream().use { bos ->
                 ZipOutputStream(bos).use { zos ->
                     zos.setLevel(Deflater.BEST_COMPRESSION)
@@ -593,6 +832,12 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
             jsonContent.toByteArray()
         }
     }
+
+    private data class BackupOptions(
+        val profile: Boolean,
+        val rule: Boolean,
+        val setting: Boolean,
+    )
 
     val importFile = registerForActivityResult(ActivityResultContracts.GetContent()) { file ->
         if (file != null) {
@@ -639,53 +884,46 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
 
             val json = JSONObject(content)
             onMainDispatcher {
-                val import = LayoutImportBinding.inflate(layoutInflater)
-                if (!json.has("profiles")) {
-                    import.backupConfigurations.isVisible = false
-                }
-                if (!json.has("rules")) {
-                    import.backupRules.isVisible = false
-                }
-                if (!json.has("settings")) {
-                    import.backupSettings.isVisible = false
-                }
-                MaterialAlertDialogBuilder(requireContext()).setTitle(R.string.backup_import)
-                    .setView(import.root)
-                    .setPositiveButton(R.string.backup_import) { _, _ ->
-                        SagerNet.stopService()
-
-                        val binding = LayoutProgressBinding.inflate(layoutInflater)
-                        binding.content.text = getString(R.string.backup_importing)
-                        val dialog = AlertDialog.Builder(requireContext())
-                            .setView(binding.root)
-                            .setCancelable(false)
-                            .show()
-                        runOnDefaultDispatcher {
-                            runCatching {
-                                finishImport(
-                                    json,
-                                    import.backupConfigurations.isChecked,
-                                    import.backupRules.isChecked,
-                                    import.backupSettings.isChecked
-                                )
-                                triggerFullRestart(requireContext())
-                            }.onFailure {
-                                Logs.w(it)
-                                onMainDispatcher {
-                                    dialog.dismiss()
-                                    MessageStore.showMessage(activity, it.readableMessage)
-                                }
-                            }
-                        }
-                    }
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show()
+                showImportDialog(json)
             }
         } catch (e: Exception) {
             Logs.w(e)
             onMainDispatcher {
                 MessageStore.showMessage(activity, e.readableMessage)
             }
+        }
+    }
+
+    private fun showImportDialog(json: JSONObject, showGitWarning: Boolean = false) {
+        if (childFragmentManager.findFragmentByTag(BackupImportDialogFragment.TAG) != null) return
+        val directory = File(requireContext().cacheDir, "backup-import-dialog").apply { mkdirs() }
+        val file = File(directory, "${UUID.randomUUID()}.json")
+        file.writeText(json.toString())
+        BackupImportDialogFragment.newInstance(
+            file = file.absolutePath,
+            hasProfiles = json.has("profiles"),
+            hasRules = json.has("rules"),
+            hasSettings = json.has("settings"),
+            showGitWarning = showGitWarning,
+        ).show(childFragmentManager, BackupImportDialogFragment.TAG)
+    }
+
+    private fun importBackup(file: File, profile: Boolean, rule: Boolean, setting: Boolean) {
+        val activity = requireActivity()
+        SagerNet.stopService()
+        val dialog = requireContext().showBlockingProgressDialog(R.string.backup_importing)
+        runOnDefaultDispatcher {
+            runCatching {
+                finishImport(JSONObject(file.readText()), profile, rule, setting)
+                triggerFullRestart(activity)
+            }.onFailure {
+                Logs.w(it)
+                onMainDispatcher {
+                    dialog.dismiss()
+                    MessageStore.showMessage(activity, it.readableMessage)
+                }
+            }
+            file.delete()
         }
     }
 
@@ -732,6 +970,19 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
             }
             SagerDatabase.rulesDao.reset()
             SagerDatabase.rulesDao.insert(rules)
+            if (content.has("customDnsServers")) {
+                val servers = mutableListOf<CustomDnsServerEntity>()
+                val jsonServers = content.getJSONArray("customDnsServers")
+                for (i in 0 until jsonServers.length()) {
+                    val data = Util.b64Decode(jsonServers[i] as String)
+                    val parcel = Parcel.obtain()
+                    parcel.unmarshall(data, 0, data.size)
+                    parcel.setDataPosition(0)
+                    servers.add(ParcelizeBridge.createCustomDnsServer(parcel))
+                    parcel.recycle()
+                }
+                CustomDnsServerStore.replaceAll(servers)
+            }
         }
         if (setting && content.has("settings")) {
             val settings = mutableListOf<KeyValuePair>()
@@ -746,11 +997,36 @@ class BackupFragment : NamedFragment(R.layout.layout_backup) {
             }
             PublicDatabase.kvPairDao.reset()
             PublicDatabase.kvPairDao.insert(settings)
+            // Never let a restore clear the first-setup flag — older backups simply
+            // won't contain this key, which would default it to false and re-trigger
+            // the first-setup flow on next launch.
+            DataStore.proxyAppsFirstSetup = true
         }
     }
 
     private fun showMessage(message: String) {
         MessageStore.showMessage(message)
+    }
+
+    private fun gitErrorMessage(error: Throwable): String {
+        if (error is BackupPasswordException) return getString(R.string.git_wrong_password)
+        if (error is InvalidBackupContainerException) return getString(R.string.git_invalid_container)
+        if (error is UnsupportedBackupVersionException) {
+            return getString(R.string.git_unsupported_version, error.version)
+        }
+        val chain = generateSequence(error) { it.cause }
+            .joinToString(" ") { it.message.orEmpty() }
+            .lowercase(Locale.ROOT)
+        return when {
+            "auth" in chain || "not authorized" in chain || "401" in chain ->
+                getString(R.string.git_authentication_failed)
+            "force-push" in chain || "protected" in chain || "rejected" in chain ->
+                getString(R.string.git_force_push_rejected)
+            "merge history" in chain -> getString(R.string.git_merge_history_unsupported)
+            "non-fast-forward" in chain || "remote branch after resynchronizing" in chain ->
+                getString(R.string.git_history_changed)
+            else -> getString(R.string.git_remote_error)
+        }
     }
 
     private fun showMessage(@StringRes resId: Int) {

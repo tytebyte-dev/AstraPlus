@@ -1,15 +1,12 @@
 package io.nekohasekai.sagernet.ui.profile
 
-import android.os.Bundle
-import androidx.preference.EditTextPreference
-import androidx.preference.PreferenceFragmentCompat
-import io.nekohasekai.sagernet.Key
-import io.nekohasekai.sagernet.R
+import androidx.compose.runtime.Composable
 import io.nekohasekai.sagernet.database.DataStore
-import io.nekohasekai.sagernet.database.preference.EditTextPreferenceModifiers
 import io.nekohasekai.sagernet.fmt.naive.NaiveBean
+import io.nekohasekai.sagernet.ui.compose.NaiveProfileSettingsScreen
 
 class NaiveSettingsActivity : ProfileSettingsActivity<NaiveBean>() {
+    override val usesComposePreferences = true
 
     override fun createEntity() = NaiveBean()
 
@@ -25,6 +22,9 @@ class NaiveSettingsActivity : ProfileSettingsActivity<NaiveBean>() {
         DataStore.serverHeaders = extraHeaders
         DataStore.serverInsecureConcurrency = insecureConcurrency
         DataStore.profileCacheStore.putBoolean("sUoT", sUoT)
+        DataStore.profileCacheStore.putString("quicCongestionControl", quicCongestionControl)
+        DataStore.profileCacheStore.putString("streamReceiveWindow", streamReceiveWindow)
+        DataStore.profileCacheStore.putString("quicSessionReceiveWindow", quicSessionReceiveWindow)
     }
 
     override fun NaiveBean.serialize() {
@@ -39,23 +39,13 @@ class NaiveSettingsActivity : ProfileSettingsActivity<NaiveBean>() {
         extraHeaders = DataStore.serverHeaders.replace("\r\n", "\n")
         insecureConcurrency = DataStore.serverInsecureConcurrency
         sUoT = DataStore.profileCacheStore.getBoolean("sUoT")
+        quicCongestionControl = DataStore.profileCacheStore.getString("quicCongestionControl").orEmpty()
+        streamReceiveWindow = DataStore.profileCacheStore.getString("streamReceiveWindow").orEmpty()
+        quicSessionReceiveWindow = DataStore.profileCacheStore.getString("quicSessionReceiveWindow").orEmpty()
     }
 
-    override fun PreferenceFragmentCompat.createPreferences(
-        savedInstanceState: Bundle?,
-        rootKey: String?,
-    ) {
-        addPreferencesFromResource(R.xml.naive_preferences)
-        findPreference<EditTextPreference>(Key.SERVER_PORT)!!.apply {
-            setOnBindEditTextListener(EditTextPreferenceModifiers.Port)
-        }
-        findPreference<EditTextPreference>(Key.SERVER_PASSWORD)!!.apply {
-            summaryProvider = PasswordSummaryProvider
-        }
-        findPreference<EditTextPreference>(Key.SERVER_INSECURE_CONCURRENCY)!!.apply {
-            setOnBindEditTextListener(EditTextPreferenceModifiers.Number)
-        }
-    }
+    @Composable
+    override fun ComposePreferences() = NaiveProfileSettingsScreen()
 
     override fun finish() {
         if (DataStore.profileName == "喵要打开隐藏功能") {

@@ -23,7 +23,7 @@ import (
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
 
-	"github.com/dyhkwong/sing-juicity"
+	"github.com/exclavenetwork/sing-juicity"
 	"github.com/gofrs/uuid/v5"
 )
 
@@ -42,7 +42,10 @@ func RegisterOutbound(registry *outbound.Registry) {
 	outbound.Register[JuicityOutboundOptions](registry, TypeJuicity, NewOutbound)
 }
 
-var _ adapter.Outbound = (*Outbound)(nil)
+var (
+	_ adapter.Outbound                = (*Outbound)(nil)
+	_ adapter.InterfaceUpdateListener = (*Outbound)(nil)
+)
 
 type Outbound struct {
 	outbound.Adapter
@@ -65,7 +68,7 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 	if options.TLS.ALPN == nil { // not len(options.TLS.ALPN) > 0
 		options.TLS.ALPN = []string{"h3"}
 	}
-	tlsConfig, err := tls.NewSTDClient(ctx, options.Server, *options.TLS)
+	tlsConfig, err := tls.NewSTDClient(ctx, logger, options.Server, *options.TLS)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +77,7 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 		if err != nil {
 			return nil, E.Cause(err, "decode pin cert sha256")
 		}
-		stdTLSConfig, _ := tlsConfig.Config()
+		stdTLSConfig, _ := tlsConfig.STDConfig()
 		stdTLSConfig.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 			peerHash := certChainHash(rawCerts)
 			if !bytes.Equal(pinCertSha256, peerHash) {
@@ -108,6 +111,10 @@ func NewOutbound(ctx context.Context, router adapter.Router, logger log.ContextL
 
 func (o *Outbound) Close() error {
 	return o.client.CloseWithError(os.ErrClosed)
+}
+
+func (o *Outbound) InterfaceUpdated(context.Context) {
+	_ = o.client.CloseWithError(E.New("network changed"))
 }
 
 func (o *Outbound) DialContext(ctx context.Context, network string, destination M.Socksaddr) (net.Conn, error) {
@@ -168,4 +175,11 @@ func certChainHash(rawCerts [][]byte) []byte {
 		}
 	}
 	return chainHash
+}
+
+func (o *Outbound) Start(stage adapter.StartStage, scope *adapter.Scope) error {
+	if stage == adapter.StartStateInitialize {
+		scope.Add(o.Close)
+	}
+	return nil
 }

@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
 import androidx.appcompat.widget.Toolbar
-import androidx.core.view.GravityCompat
 import androidx.fragment.app.Fragment
 import io.nekohasekai.sagernet.R
 
@@ -15,12 +14,18 @@ open class ToolbarFragment : Fragment {
 
     lateinit var toolbar: Toolbar
 
+    fun toolbarOrNull(): Toolbar? {
+        return if (::toolbar.isInitialized) toolbar else null
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        toolbar = view.findViewById(R.id.toolbar)
-        toolbar.setNavigationIcon(R.drawable.ic_navigation_menu)
-        toolbar.setNavigationOnClickListener {
-            (activity as MainActivity).binding.drawerLayout.openDrawer(GravityCompat.START)
+        val viewToolbar = view.findViewById<Toolbar>(R.id.toolbar) ?: return
+        toolbar = viewToolbar
+        viewToolbar.setNavigationIcon(R.drawable.ic_navigation_menu)
+        viewToolbar.setNavigationContentDescription(R.string.abc_action_bar_up_description)
+        viewToolbar.setNavigationOnClickListener {
+            (activity as MainActivity).openDrawer()
         }
     }
 

@@ -1,54 +1,92 @@
 package io.nekohasekai.sagernet.ui
 
+import android.Manifest
 import android.app.Activity
-import android.content.DialogInterface
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
-import android.os.Parcelable
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
+import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.compose.setContent
 import androidx.activity.result.component1
 import androidx.activity.result.component2
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.LayoutRes
-import androidx.appcompat.app.AlertDialog
-import androidx.core.view.ViewCompat
-import androidx.preference.EditTextPreference
-import androidx.preference.Preference
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.lifecycleScope
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceDataStore
-import androidx.preference.PreferenceFragmentCompat
-import com.github.shadowsocks.plugin.Empty
-import com.github.shadowsocks.plugin.fragment.AlertDialogFragment
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.nekohasekai.sagernet.Key
 import io.nekohasekai.sagernet.R
-import io.nekohasekai.sagernet.SagerNet
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.ProfileManager
+import io.nekohasekai.sagernet.database.CustomDnsServerStore
 import io.nekohasekai.sagernet.database.RuleEntity
+import io.nekohasekai.sagernet.database.RuleType
 import io.nekohasekai.sagernet.database.SagerDatabase
 import io.nekohasekai.sagernet.database.preference.OnPreferenceDataStoreChangeListener
-import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.app
 import io.nekohasekai.sagernet.ktx.onMainDispatcher
+import io.nekohasekai.sagernet.ktx.onDefaultDispatcher
 import io.nekohasekai.sagernet.ktx.runOnDefaultDispatcher
+import io.nekohasekai.sagernet.ui.compose.showComposeMessageDialog
+import io.nekohasekai.sagernet.ui.compose.showComposeItemDialog
+import io.nekohasekai.sagernet.ui.compose.showComposeTextInputDialog
+import io.nekohasekai.sagernet.ui.compose.NekoComposeTheme
+import io.nekohasekai.sagernet.ui.compose.RouteEditorField
+import io.nekohasekai.sagernet.ui.compose.RouteSettingsScreen
+import io.nekohasekai.sagernet.ui.compose.showComposeSingleChoiceDialog
 import io.nekohasekai.sagernet.utils.PackageCache
-import io.nekohasekai.sagernet.widget.AppListPreference
-import io.nekohasekai.sagernet.widget.ListListener
-import io.nekohasekai.sagernet.widget.OutboundPreference
-import kotlinx.parcelize.Parcelize
-import moe.matsuri.nb4a.ui.EditConfigPreference
+import io.nekohasekai.sagernet.widget.RouteEditTextPreferenceDialogFragment
+import io.nekohasekai.sagernet.ui.profile.ConfigEditActivity
+import kotlinx.coroutines.launch
 
 @Suppress("UNCHECKED_CAST")
-class RouteSettingsActivity(
-    @LayoutRes resId: Int = R.layout.layout_settings_activity,
-) : ThemedActivity(resId),
+class RouteSettingsActivity : ThemedActivity(),
     OnPreferenceDataStoreChangeListener {
+
+    companion object {
+        const val EXTRA_ROUTE_ID = "id"
+        const val EXTRA_PACKAGE_NAME = "pkg"
+        const val EXTRA_ROUTE_TYPE = "type"
+        const val EXTRA_DASHBOARD_ROUTE_DRAFT = "dashboardRouteDraft"
+        private const val WIFI_LOCATION_PERMISSION_REQUEST_CODE = 1001
+
+        private const val ROUTE_PROTOCOL_SELECTOR = "routeProtocolSelector"
+        private const val ROUTE_PROTOCOL_CUSTOM = "__custom__"
+        private const val DNS_SERVER_CUSTOM = "__custom__"
+        private const val DNS_SERVER_BLOCK = "__block__"
+    }
+
+    private val routeProtocolValues by lazy {
+        resources.getStringArray(R.array.route_sniff_protocol_value)
+    }
+    private val routeProtocolOfficialValues by lazy {
+        routeProtocolValues.filterNot { it == ROUTE_PROTOCOL_CUSTOM }.toSet()
+    }
 
     fun init(packageName: String?) {
         RuleEntity().apply {
+            type = RuleType.fromValue(intent.getStringExtra(EXTRA_ROUTE_TYPE)).value
+            intent.getStringExtra(EXTRA_DASHBOARD_ROUTE_DRAFT)?.let { encoded ->
+                val draft = org.json.JSONObject(encoded)
+                domains = draft.optString("domain").takeIf { it.isNotBlank() }?.let { "full:$it" }.orEmpty()
+                val destination = io.nekohasekai.sagernet.ui.dashboard.splitEndpoint(draft.optString("destination"))
+                ip = destination.first
+                port = destination.second
+                val sourceEndpoint = io.nekohasekai.sagernet.ui.dashboard.splitEndpoint(draft.optString("source"))
+                source = sourceEndpoint.first
+                sourcePort = sourceEndpoint.second
+                network = draft.optString("network")
+                protocol = draft.optString("protocol")
+                val packageArray = draft.optJSONArray("packages")
+                packages = if (packageArray == null) emptySet() else (0 until packageArray.length()).map { packageArray.getString(it) }.toSet()
+            }
             if (!packageName.isNullOrBlank()) {
                 packages = setOf(packageName)
                 name = app.getString(R.string.route_for, PackageCache.loadLabel(packageName))
@@ -57,37 +95,75 @@ class RouteSettingsActivity(
     }
 
     fun RuleEntity.init() {
+        DataStore.routeDnsAction = dnsAction
+        DataStore.routeDnsServer = dnsServer
+        DataStore.routeDnsDisableCache = dnsDisableCache
+        DataStore.routeDnsRewriteTtl = dnsRewriteTtl
+        DataStore.routeDnsClientSubnet = dnsClientSubnet
+        DataStore.routeDnsRcode = dnsRcode
+        DataStore.routeDnsRejectMethod = dnsRejectMethod
+        DataStore.routeDnsPredefinedAnswer = dnsPredefinedAnswer
+        DataStore.routeDnsPredefinedNs = dnsPredefinedNs
+        DataStore.routeDnsPredefinedExtra = dnsPredefinedExtra
         DataStore.routeName = name
         DataStore.serverConfig = config
         DataStore.routeDomain = domains
         DataStore.routeIP = ip
         DataStore.routePort = port
         DataStore.routeSourcePort = sourcePort
+        DataStore.routeNetworkType = networkType
+        DataStore.routeWifiSsid = wifiSsid
+        DataStore.routeWifiBssid = wifiBssid
         DataStore.routeNetwork = network
         DataStore.routeSource = source
         DataStore.routeProtocol = protocol
         DataStore.routeRuleset = ruleset
+        DataStore.routeClashMode = clashMode
+        DataStore.routeCreateDnsRule = if (createDnsRule) 1 else 0
         DataStore.routeOutboundRule = outbound
         DataStore.routeOutbound = when (outbound) {
             0L -> 0
             -1L -> 1
             -2L -> 2
-            else -> OutboundPreference.VALUE_SELECT_PROFILE.toInt()
+            else -> 3
         }
         DataStore.routePackages = packages.joinToString("\n")
     }
 
     fun RuleEntity.serialize() {
+        type = if (DataStore.editingId == 0L) {
+            RuleType.fromValue(intent.getStringExtra(EXTRA_ROUTE_TYPE)).value
+        } else {
+            type
+        }
+        dnsAction = DataStore.routeDnsAction.ifBlank { "route" }
+        dnsServer = when (DataStore.routeDnsServer) {
+            DNS_SERVER_CUSTOM, DNS_SERVER_BLOCK -> "dns-remote"
+            else -> DataStore.routeDnsServer
+        }
+        dnsDisableCache = DataStore.routeDnsDisableCache
+        dnsRewriteTtl = DataStore.routeDnsRewriteTtl
+        dnsClientSubnet = DataStore.routeDnsClientSubnet
+        dnsRcode = DataStore.routeDnsRcode.ifBlank { "NOERROR" }
+        dnsRejectMethod = DataStore.routeDnsRejectMethod
+        dnsPredefinedAnswer = DataStore.routeDnsPredefinedAnswer
+        dnsPredefinedNs = DataStore.routeDnsPredefinedNs
+        dnsPredefinedExtra = DataStore.routeDnsPredefinedExtra
         name = DataStore.routeName
         config = DataStore.serverConfig
         domains = DataStore.routeDomain
         ip = DataStore.routeIP
         port = DataStore.routePort
         sourcePort = DataStore.routeSourcePort
+        networkType = DataStore.routeNetworkType
+        wifiSsid = RuleEntity.normalizeWifiSsid(DataStore.routeWifiSsid)
+        wifiBssid = RuleEntity.normalizeWifiBssid(DataStore.routeWifiBssid)
         network = DataStore.routeNetwork
         source = DataStore.routeSource
         protocol = DataStore.routeProtocol
         ruleset = DataStore.routeRuleset
+        clashMode = DataStore.routeClashMode
+        createDnsRule = DataStore.routeCreateDnsRule != 0
         outbound = when (DataStore.routeOutbound) {
             0 -> 0L
             1 -> -1L
@@ -101,27 +177,49 @@ class RouteSettingsActivity(
         }
     }
 
-    private lateinit var editConfigPreference: EditConfigPreference
+    private var screenRevision by mutableIntStateOf(0)
+    private var dnsRule = false
+    private var pendingWifiPermissionSave = false
+    private var pendingWifiBackgroundPermissionSave = false
+    private var resetDirtyWhenEditorReady = false
+    private var preferenceListenerRegistered = false
+    private val editConfig = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        screenRevision++
+    }
+
+    private val requestBackgroundLocationSettings = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (!pendingWifiBackgroundPermissionSave) {
+            return@registerForActivityResult
+        }
+        pendingWifiBackgroundPermissionSave = false
+        runOnDefaultDispatcher {
+            persistAndExit()
+        }
+    }
 
     fun needSave(): Boolean {
         return DataStore.dirty
     }
 
-    fun PreferenceFragmentCompat.createPreferences(
-        savedInstanceState: Bundle?,
-        rootKey: String?,
-    ) {
-        addPreferencesFromResource(R.xml.route_preferences)
-
-        editConfigPreference = findPreference(Key.SERVER_CONFIG)!!
+    private fun routeProtocolSelectorValue(protocol: String): String {
+        return when {
+            protocol in routeProtocolOfficialValues -> protocol
+            protocol.isNotBlank() -> ROUTE_PROTOCOL_CUSTOM
+            else -> ""
+        }
     }
 
-    override fun onResume() {
-        super.onResume()
-
-        if (::editConfigPreference.isInitialized) {
-            editConfigPreference.notifyChanged()
-        }
+    private fun showRouteProtocolCustomDialog() {
+        showComposeTextInputDialog(
+            title = getText(R.string.protocol),
+            initialValue = DataStore.routeProtocol,
+            onPositive = { value ->
+                DataStore.routeProtocol = value
+                screenRevision++
+            },
+        )
     }
 
     val selectProfileForAdd = registerForActivityResult(
@@ -135,7 +233,8 @@ class RouteSettingsActivity(
             ) ?: return@runOnDefaultDispatcher
             DataStore.routeOutboundRule = profile.id
             onMainDispatcher {
-                outbound.value = OutboundPreference.VALUE_SELECT_PROFILE
+                DataStore.routeOutbound = 3
+                screenRevision++
             }
         }
     }
@@ -143,131 +242,116 @@ class RouteSettingsActivity(
     val selectAppList = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { (_, _) ->
-        apps.postUpdate()
+        screenRevision++
     }
 
-    lateinit var outbound: OutboundPreference
-    lateinit var apps: AppListPreference
+    private fun currentRuleType(): RuleType {
+        if (DataStore.editingId == 0L) return RuleType.fromValue(intent.getStringExtra(EXTRA_ROUTE_TYPE))
+        return RuleType.fromValue(SagerDatabase.rulesDao.getById(DataStore.editingId)?.type)
+    }
 
-    fun PreferenceFragmentCompat.viewCreated(view: View, savedInstanceState: Bundle?) {
-        outbound = findPreference(Key.ROUTE_OUTBOUND)!!
-        apps = findPreference(Key.ROUTE_PACKAGES)!!
-
-        outbound.setOnPreferenceChangeListener { _, newValue ->
-            if (newValue.toString() == OutboundPreference.VALUE_SELECT_PROFILE) {
-                selectProfileForAdd.launch(
-                    Intent(
-                        this@RouteSettingsActivity, ProfileSelectActivity::class.java
-                    ).apply {
-                        ProfileManager.getProfile(DataStore.routeOutboundRule)?.let {
-                            putExtra(ProfileSelectActivity.EXTRA_SELECTED, it)
-                        }
-                    }
-                )
-                false
-            } else {
-                true
-            }
+    private fun showCustomDnsServerPicker() {
+        val servers = CustomDnsServerStore.allServers()
+        if (servers.isEmpty()) {
+            Toast.makeText(this, R.string.custom_dns_servers_empty, Toast.LENGTH_SHORT).show()
+            return
         }
-
-        apps.setOnPreferenceClickListener {
-            selectAppList.launch(
-                Intent(
-                    this@RouteSettingsActivity, AppListActivity::class.java
-                )
-            )
-            true
-        }
-    }
-
-    fun displayPreferenceDialog(preference: Preference): Boolean {
-        return false
-    }
-
-    class UnsavedChangesDialogFragment : AlertDialogFragment<Empty, Empty>() {
-        override fun AlertDialog.Builder.prepare(listener: DialogInterface.OnClickListener) {
-            setTitle(R.string.unsaved_changes_prompt)
-            setPositiveButton(R.string.yes) { _, _ ->
-                runOnDefaultDispatcher {
-                    (requireActivity() as RouteSettingsActivity).saveAndExit()
-                }
-            }
-            setNegativeButton(R.string.no) { _, _ ->
-                requireActivity().finish()
-            }
-            setNeutralButton(android.R.string.cancel, null)
-        }
-    }
-
-    @Parcelize
-    data class ProfileIdArg(val ruleId: Long) : Parcelable
-    class DeleteConfirmationDialogFragment : AlertDialogFragment<ProfileIdArg, Empty>() {
-        override fun AlertDialog.Builder.prepare(listener: DialogInterface.OnClickListener) {
-            setTitle(R.string.delete_route_prompt)
-            setPositiveButton(R.string.yes) { _, _ ->
-                runOnDefaultDispatcher {
-                    ProfileManager.deleteRule(arg.ruleId)
-                }
-                requireActivity().finish()
-            }
-            setNegativeButton(R.string.no, null)
-        }
-    }
-
-    companion object {
-        const val EXTRA_ROUTE_ID = "id"
-        const val EXTRA_PACKAGE_NAME = "pkg"
+        showComposeItemDialog(
+            title = getText(R.string.custom_dns_servers),
+            items = servers.map { it.tag },
+            negativeButton = getText(android.R.string.cancel),
+            onItemSelected = { which ->
+                DataStore.routeDnsAction = "route"
+                DataStore.routeDnsServer = servers[which].tag
+                screenRevision++
+            },
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        resetDirtyWhenEditorReady = savedInstanceState == null
         super.onCreate(savedInstanceState)
-        setSupportActionBar(findViewById(R.id.toolbar))
-        supportActionBar?.apply {
-            setTitle(R.string.cag_route)
-            setDisplayHomeAsUpEnabled(true)
-            setHomeAsUpIndicator(R.drawable.ic_navigation_close)
-        }
-
-        if (savedInstanceState == null) {
-            val editingId = intent.getLongExtra(EXTRA_ROUTE_ID, 0L)
-            DataStore.editingId = editingId
-            runOnDefaultDispatcher {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() = closeEditor()
+        })
+        val editingId = intent.getLongExtra(EXTRA_ROUTE_ID, 0L)
+        DataStore.editingId = editingId
+        lifecycleScope.launch {
+            val loaded = onDefaultDispatcher {
                 if (editingId == 0L) {
                     init(intent.getStringExtra(EXTRA_PACKAGE_NAME))
+                    true
                 } else {
-                    val ruleEntity = SagerDatabase.rulesDao.getById(editingId)
-                    if (ruleEntity == null) {
-                        onMainDispatcher {
-                            finish()
-                        }
-                        return@runOnDefaultDispatcher
-                    }
-                    ruleEntity.init()
-                }
-
-                onMainDispatcher {
-                    supportFragmentManager.beginTransaction()
-                        .replace(R.id.settings, MyPreferenceFragmentCompat())
-                        .commit()
-
-                    DataStore.dirty = false
-                    DataStore.profileCacheStore.registerChangeListener(this@RouteSettingsActivity)
+                    SagerDatabase.rulesDao.getById(editingId)?.also { it.init() } != null
                 }
             }
-
-
+            if (!loaded) {
+                finish()
+                return@launch
+            }
+            dnsRule = onDefaultDispatcher { currentRuleType() == RuleType.DNS }
+            onEditorReady()
+            setContent {
+                NekoComposeTheme {
+                    screenRevision
+                    RouteSettingsScreen(
+                        isDnsRule = dnsRule,
+                        outboundName = currentOutboundName(),
+                        onClose = ::closeEditor,
+                        onSave = { runOnDefaultDispatcher { saveAndExit() } },
+                        onDelete = ::requestDelete,
+                        onEditConfig = { editConfig.launch(Intent(this@RouteSettingsActivity, ConfigEditActivity::class.java)) },
+                        onSelectApps = { selectAppList.launch(Intent(this@RouteSettingsActivity, AppListActivity::class.java)) },
+                        onSelectOutbound = ::selectOutbound,
+                        onSelectDnsServer = ::selectDnsServer,
+                        onEditProtocol = ::selectProtocol,
+                        onSpecialEditor = ::showSpecialEditor,
+                    )
+                }
+            }
         }
-
     }
 
     suspend fun saveAndExit() {
+        RuleEntity.normalizeWifiSsid(DataStore.routeWifiSsid).let { normalized ->
+            if (normalized != DataStore.routeWifiSsid) DataStore.routeWifiSsid = normalized
+        }
+        RuleEntity.normalizeWifiBssid(DataStore.routeWifiBssid).let { normalized ->
+            if (normalized != DataStore.routeWifiBssid) DataStore.routeWifiBssid = normalized
+        }
+
+        if (shouldRequestForegroundWifiPermission()) {
+            pendingWifiPermissionSave = true
+            onMainDispatcher {
+                ActivityCompat.requestPermissions(
+                    this@RouteSettingsActivity,
+                    arrayOf(
+                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                    ),
+                    WIFI_LOCATION_PERMISSION_REQUEST_CODE,
+                )
+            }
+            return
+        }
+        if (shouldRequestBackgroundWifiPermission()) {
+            onMainDispatcher {
+                requestBackgroundWifiPermissionThenSave()
+            }
+            return
+        }
+        pendingWifiPermissionSave = false
+        persistAndExit()
+    }
+
+    private suspend fun persistAndExit() {
 
         if (!needSave()) {
             onMainDispatcher {
-                MaterialAlertDialogBuilder(this@RouteSettingsActivity).setTitle(R.string.empty_route)
-                    .setMessage(R.string.empty_route_notice)
-                    .setPositiveButton(android.R.string.ok, null)
-                    .show()
+                showComposeMessageDialog(
+                    title = getText(R.string.empty_route),
+                    message = getText(R.string.empty_route_notice),
+                )
             }
             return
         }
@@ -291,110 +375,249 @@ class RouteSettingsActivity(
 
     }
 
-    val child by lazy { supportFragmentManager.findFragmentById(R.id.settings) as MyPreferenceFragmentCompat }
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.profile_config_menu, menu)
-        return true
+    private fun closeEditor() {
+        if (!needSave()) {
+            finish()
+            return
+        }
+        showComposeMessageDialog(
+            title = getText(R.string.unsaved_changes_prompt),
+            positiveButton = getText(R.string.yes),
+            negativeButton = getText(R.string.no),
+            neutralButton = getText(android.R.string.cancel),
+            onPositive = { runOnDefaultDispatcher { saveAndExit() } },
+            onNegative = ::finish,
+        )
     }
 
-    override fun onOptionsItemSelected(item: MenuItem) = child.onOptionsItemSelected(item)
-
-    override fun onBackPressed() {
-        if (needSave()) {
-            UnsavedChangesDialogFragment().apply { key() }.show(supportFragmentManager, null)
-        } else super.onBackPressed()
+    private fun requestDelete() {
+        val id = DataStore.editingId
+        if (id == 0L) {
+            finish()
+            return
+        }
+        fun delete() {
+            runOnDefaultDispatcher { ProfileManager.deleteRule(id) }
+            finish()
+        }
+        if (DataStore.confirmProfileDelete) showComposeMessageDialog(
+            title = getText(R.string.delete_route_prompt),
+            positiveButton = getText(R.string.yes),
+            negativeButton = getText(R.string.no),
+            onPositive = ::delete,
+        ) else delete()
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-        if (!super.onSupportNavigateUp()) finish()
-        return true
+    private fun currentOutboundName(): String {
+        val entries = resources.getStringArray(R.array.outbound_entry)
+        val values = resources.getStringArray(R.array.outbound_value)
+        return if (DataStore.routeOutbound == 3) {
+            ProfileManager.getProfile(DataStore.routeOutboundRule)?.displayName() ?: getString(R.string.none)
+        } else entries.getOrElse(values.indexOf(DataStore.routeOutbound.toString())) { getString(R.string.none) }
+    }
+
+    private fun selectOutbound() {
+        val entries = resources.getStringArray(R.array.outbound_entry).toList()
+        val values = resources.getStringArray(R.array.outbound_value)
+        showComposeSingleChoiceDialog(
+            title = getText(R.string.outbound),
+            items = entries,
+            selectedIndex = values.indexOf(DataStore.routeOutbound.toString()).coerceAtLeast(0),
+            onItemSelected = { index ->
+                val value = values[index].toInt()
+                if (value == 3) {
+                    selectProfileForAdd.launch(Intent(this, ProfileSelectActivity::class.java))
+                } else {
+                    DataStore.routeOutbound = value
+                    screenRevision++
+                }
+            },
+        )
+    }
+
+    private fun selectProtocol() {
+        val entries = resources.getStringArray(R.array.route_sniff_protocol_entry).toList()
+        val values = routeProtocolValues
+        showComposeSingleChoiceDialog(
+            title = getText(R.string.protocol),
+            items = entries,
+            selectedIndex = values.indexOf(routeProtocolSelectorValue(DataStore.routeProtocol)).coerceAtLeast(0),
+            onItemSelected = { index ->
+                if (values[index] == ROUTE_PROTOCOL_CUSTOM) showRouteProtocolCustomDialog()
+                else {
+                    DataStore.routeProtocol = values[index]
+                    screenRevision++
+                }
+            },
+        )
+    }
+
+    private fun selectDnsServer() {
+        val entries = resources.getStringArray(R.array.dns_rule_server_entry).toList()
+        val values = resources.getStringArray(R.array.dns_rule_server_value)
+        val selected = when {
+            DataStore.routeDnsAction == "predefined" && DataStore.routeDnsRcode == "NOERROR" -> DNS_SERVER_BLOCK
+            DataStore.routeDnsServer in values -> DataStore.routeDnsServer
+            else -> DNS_SERVER_CUSTOM
+        }
+        showComposeSingleChoiceDialog(
+            title = getText(R.string.dns_rule_server),
+            items = entries,
+            selectedIndex = values.indexOf(selected).coerceAtLeast(0),
+            onItemSelected = { index -> when (val value = values[index]) {
+                DNS_SERVER_CUSTOM -> showCustomDnsServerPicker()
+                DNS_SERVER_BLOCK -> {
+                    DataStore.routeDnsAction = "predefined"
+                    DataStore.routeDnsRcode = "NOERROR"
+                    screenRevision++
+                }
+                else -> {
+                    DataStore.routeDnsAction = "route"
+                    DataStore.routeDnsServer = value
+                    screenRevision++
+                }
+            } },
+        )
+    }
+
+    private fun showSpecialEditor(field: RouteEditorField, title: String, value: String) {
+        val (key, mode) = when (field) {
+            RouteEditorField.DOMAIN -> Key.ROUTE_DOMAIN to RouteEditTextPreferenceDialogFragment.EditorMode.ROUTE_DOMAIN
+            RouteEditorField.IP -> Key.ROUTE_IP to if (dnsRule)
+                RouteEditTextPreferenceDialogFragment.EditorMode.PLAIN_MULTILINE
+            else RouteEditTextPreferenceDialogFragment.EditorMode.ROUTE_IP
+            RouteEditorField.RULESET -> Key.ROUTE_RULESET to RouteEditTextPreferenceDialogFragment.EditorMode.RULESET
+            RouteEditorField.WIFI_SSID -> Key.ROUTE_WIFI_SSID to RouteEditTextPreferenceDialogFragment.EditorMode.PLAIN_MULTILINE
+            RouteEditorField.WIFI_BSSID -> Key.ROUTE_WIFI_BSSID to RouteEditTextPreferenceDialogFragment.EditorMode.PLAIN_MULTILINE
+        }
+        RouteEditTextPreferenceDialogFragment.newInstance(key, title, value, mode)
+            .show(supportFragmentManager, key)
+    }
+
+    private fun onEditorReady() {
+        if (resetDirtyWhenEditorReady) {
+            DataStore.dirty = false
+            resetDirtyWhenEditorReady = false
+        }
+        if (!preferenceListenerRegistered) {
+            DataStore.profileCacheStore.registerChangeListener(this)
+            preferenceListenerRegistered = true
+        }
     }
 
     override fun onDestroy() {
-        DataStore.profileCacheStore.unregisterChangeListener(this)
+        if (preferenceListenerRegistered) {
+            DataStore.profileCacheStore.unregisterChangeListener(this)
+            preferenceListenerRegistered = false
+        }
         super.onDestroy()
     }
 
     override fun onPreferenceDataStoreChanged(store: PreferenceDataStore, key: String) {
-        if (key != Key.PROFILE_DIRTY) {
+        if (key != Key.PROFILE_DIRTY && key != ROUTE_PROTOCOL_SELECTOR) {
             DataStore.dirty = true
         }
+        screenRevision++
     }
 
-    class MyPreferenceFragmentCompat : PreferenceFragmentCompat() {
-
-        var activity: RouteSettingsActivity? = null
-
-        override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-            preferenceManager.preferenceDataStore = DataStore.profileCacheStore
-            try {
-                activity = (requireActivity() as RouteSettingsActivity).apply {
-                    createPreferences(savedInstanceState, rootKey)
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != WIFI_LOCATION_PERMISSION_REQUEST_CODE || !pendingWifiPermissionSave) {
+            return
+        }
+        pendingWifiPermissionSave = false
+        runOnDefaultDispatcher {
+            if (
+                permissions.contains(Manifest.permission.ACCESS_FINE_LOCATION) &&
+                shouldRequestForegroundWifiPermission()
+            ) {
+                persistAndExit()
+            } else if (permissions.contains(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
+                persistAndExit()
+            } else if (shouldRequestBackgroundWifiPermission()) {
+                onMainDispatcher {
+                    requestBackgroundWifiPermissionThenSave()
                 }
-            } catch (e: Exception) {
-                Toast.makeText(
-                    SagerNet.application,
-                    "Error on createPreferences, please try again.",
-                    Toast.LENGTH_SHORT
-                ).show()
-                Logs.e(e)
-            }
-        }
-
-        override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-            super.onViewCreated(view, savedInstanceState)
-
-            ViewCompat.setOnApplyWindowInsetsListener(listView, ListListener)
-
-            activity?.apply {
-                viewCreated(view, savedInstanceState)
-            }
-        }
-
-        override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
-            R.id.action_delete -> {
-                if (DataStore.editingId == 0L) {
-                    requireActivity().finish()
-                } else {
-                    DeleteConfirmationDialogFragment().apply {
-                        arg(ProfileIdArg(DataStore.editingId))
-                        key()
-                    }.show(parentFragmentManager, null)
-                }
-                true
-            }
-
-            R.id.action_apply -> {
-                runOnDefaultDispatcher {
-                    activity?.saveAndExit()
-                }
-                true
-            }
-
-            else -> false
-        }
-
-        override fun onDisplayPreferenceDialog(preference: Preference) {
-            activity?.apply {
-                if (displayPreferenceDialog(preference)) return
-            }
-            super.onDisplayPreferenceDialog(preference)
-        }
-
-    }
-
-    object PasswordSummaryProvider : Preference.SummaryProvider<EditTextPreference> {
-
-        override fun provideSummary(preference: EditTextPreference): CharSequence {
-            val text = preference.text
-            return if (text.isNullOrBlank()) {
-                preference.context.getString(androidx.preference.R.string.not_set)
             } else {
-                "\u2022".repeat(text.length)
+                persistAndExit()
             }
         }
+    }
 
+    private fun hasActiveWifiIdentity(): Boolean {
+        if (!RuleEntity.isWifiIdentityVisible(DataStore.routeNetworkType)) {
+            return false
+        }
+        return RuleEntity.normalizeWifiSsidList(DataStore.routeWifiSsid).isNotEmpty() ||
+            RuleEntity.normalizeWifiBssidList(DataStore.routeWifiBssid).isNotEmpty()
+    }
+
+    private fun shouldRequestForegroundWifiPermission(): Boolean {
+        if (!hasActiveWifiIdentity()) {
+            return false
+        }
+        return ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+        ) != PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun shouldRequestBackgroundWifiPermission(): Boolean {
+        if (!hasActiveWifiIdentity() ||
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
+            shouldRequestForegroundWifiPermission()
+        ) {
+            return false
+        }
+        return ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+        ) != PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun requestBackgroundWifiPermissionThenSave() {
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
+            pendingWifiPermissionSave = true
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
+                WIFI_LOCATION_PERMISSION_REQUEST_CODE,
+            )
+            return
+        }
+
+        pendingWifiBackgroundPermissionSave = true
+        val allowAllTheTimeLabel = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            packageManager.backgroundPermissionOptionLabel
+        } else {
+            getString(R.string.wifi_background_location_permission_allow_all_the_time)
+        }
+        showComposeMessageDialog(
+            title = getText(R.string.wifi_background_location_permission_title),
+            message = getString(
+                R.string.wifi_background_location_permission_message,
+                allowAllTheTimeLabel,
+            ),
+            positiveButton = getText(android.R.string.ok),
+            negativeButton = getText(R.string.wifi_background_location_permission_continue_without),
+            onPositive = {
+                requestBackgroundLocationSettings.launch(
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", packageName, null)
+                    }
+                )
+            },
+            onNegative = {
+                pendingWifiBackgroundPermissionSave = false
+                runOnDefaultDispatcher {
+                    persistAndExit()
+                }
+            },
+        )
     }
 
 }

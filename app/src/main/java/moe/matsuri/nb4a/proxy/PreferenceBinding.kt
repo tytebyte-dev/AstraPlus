@@ -1,7 +1,5 @@
 package moe.matsuri.nb4a.proxy
 
-import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.Logs
 import io.nekohasekai.sagernet.ktx.readableMessage
@@ -11,13 +9,14 @@ object Type {
     const val TextToInt = 1
     const val Int = 2
     const val Bool = 3
+    const val TextToDouble = 4
+    const val TextToLong = 5
 }
 
 class PreferenceBinding(
     val type: Int = Type.Text,
     var fieldName: String,
     var bean: Any? = null,
-    var pf: PreferenceFragmentCompat? = null
 ) {
 
     var cacheName = fieldName
@@ -41,6 +40,14 @@ class PreferenceBinding(
         return value
     }
 
+    fun readStringToDoubleFromCache(): Double {
+        return DataStore.profileCacheStore.getString(cacheName)?.toDoubleOrNull() ?: 0.0
+    }
+
+    fun readStringToLongFromCache(): Long {
+        return DataStore.profileCacheStore.getString(cacheName)?.toLongOrNull() ?: 0L
+    }
+
     fun fromCache() {
         if (disable) return
         val f = try {
@@ -54,6 +61,8 @@ class PreferenceBinding(
             Type.TextToInt -> f.set(bean, readStringToIntFromCache())
             Type.Int -> f.set(bean, readIntFromCache())
             Type.Bool -> f.set(bean, readBoolFromCache())
+            Type.TextToDouble -> f.set(bean, readStringToDoubleFromCache())
+            Type.TextToLong -> f.set(bean, readStringToLongFromCache())
         }
     }
 
@@ -89,10 +98,17 @@ class PreferenceBinding(
                     DataStore.profileCacheStore.putBoolean(cacheName, value)
                 }
             }
+            Type.TextToDouble -> {
+                if (value is Number) {
+                    DataStore.profileCacheStore.putString(cacheName, value.toDouble().toString())
+                }
+            }
+            Type.TextToLong -> {
+                if (value is Number) {
+                    DataStore.profileCacheStore.putString(cacheName, value.toLong().toString())
+                }
+            }
         }
     }
 
-    val preference by lazy {
-        pf!!.findPreference<Preference>(cacheName)!!
-    }
 }

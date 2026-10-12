@@ -1,12 +1,13 @@
 package io.nekohasekai.sagernet.group
 
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.nekohasekai.sagernet.R
+import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.GroupManager
 import io.nekohasekai.sagernet.database.ProxyGroup
 import io.nekohasekai.sagernet.ktx.onMainDispatcher
 import io.nekohasekai.sagernet.ktx.runOnMainDispatcher
 import io.nekohasekai.sagernet.ui.ThemedActivity
+import io.nekohasekai.sagernet.ui.compose.showComposeMessageDialog
 import kotlinx.coroutines.delay
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -16,12 +17,15 @@ class GroupInterfaceAdapter(val context: ThemedActivity) : GroupManager.Interfac
     override suspend fun confirm(message: String): Boolean {
         return suspendCoroutine {
             runOnMainDispatcher {
-                MaterialAlertDialogBuilder(context).setTitle(R.string.confirm)
-                    .setMessage(message)
-                    .setPositiveButton(R.string.yes) { _, _ -> it.resume(true) }
-                    .setNegativeButton(R.string.no) { _, _ -> it.resume(false) }
-                    .setOnCancelListener { _ -> it.resume(false) }
-                    .show()
+                context.showComposeMessageDialog(
+                    title = context.getText(R.string.confirm),
+                    message = message,
+                    positiveButton = context.getText(R.string.yes),
+                    negativeButton = context.getText(R.string.no),
+                    onPositive = { it.resume(true) },
+                    onNegative = { it.resume(false) },
+                    onCancel = { it.resume(false) },
+                )
             }
         }
     }
@@ -35,8 +39,10 @@ class GroupInterfaceAdapter(val context: ThemedActivity) : GroupManager.Interfac
         duplicate: List<String>,
         byUser: Boolean
     ) {
+        if (!byUser) return
+
         if (changed == 0 && duplicate.isEmpty()) {
-            if (byUser) context.snackbar(
+            context.snackbar(
                     context.getString(
                             R.string.group_no_difference, group.displayName()
                     )
@@ -67,14 +73,15 @@ class GroupInterfaceAdapter(val context: ThemedActivity) : GroupManager.Interfac
                 )
             }
 
+            if (!DataStore.enableGroupUpdateDialog) return
+
             onMainDispatcher {
                 delay(1000L)
 
-                MaterialAlertDialogBuilder(context).setTitle(
-                        context.getString(
-                                R.string.group_diff, group.displayName()
-                        )
-                ).setMessage(status.trim()).setPositiveButton(android.R.string.ok, null).show()
+                context.showComposeMessageDialog(
+                    title = context.getString(R.string.group_diff, group.displayName()),
+                    message = status.trim(),
+                )
             }
 
         }
@@ -87,14 +94,16 @@ class GroupInterfaceAdapter(val context: ThemedActivity) : GroupManager.Interfac
         }
     }
 
+
     override suspend fun alert(message: String) {
         return suspendCoroutine {
             runOnMainDispatcher {
-                MaterialAlertDialogBuilder(context).setTitle(R.string.ooc_warning)
-                    .setMessage(message)
-                    .setPositiveButton(android.R.string.ok) { _, _ -> it.resume(Unit) }
-                    .setOnCancelListener { _ -> it.resume(Unit) }
-                    .show()
+                context.showComposeMessageDialog(
+                    title = context.getText(R.string.ooc_warning),
+                    message = message,
+                    onPositive = { it.resume(Unit) },
+                    onCancel = { it.resume(Unit) },
+                )
             }
         }
     }

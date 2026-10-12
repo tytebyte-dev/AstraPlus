@@ -1,5 +1,7 @@
 package io.nekohasekai.sagernet.bg.proto
 
+import io.nekohasekai.sagernet.database.DataStore
+
 import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.bg.BaseService
 import io.nekohasekai.sagernet.bg.ServiceNotification
@@ -49,17 +51,22 @@ class ProxyInstance(profile: ProxyEntity, var service: BaseService.Interface? = 
     override fun launch() {
         box.setAsMain()
         super.launch() // start box
+        if (!DataStore.enableClashAPI) box.startDashboard(DataStore.dashboardSocketPath)
         runOnDefaultDispatcher {
             looper = service?.let { TrafficLooper(it.data, this) }
             looper?.start()
         }
     }
 
-    override fun close() {
-        super.close()
+    override fun close(timeoutMillis: Long) {
         runBlocking {
             looper?.stop()
             looper = null
         }
+        super.close(timeoutMillis)
+    }
+
+    override fun close() {
+        close(60_000L)
     }
 }

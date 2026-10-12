@@ -34,6 +34,11 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: 1.27.1
+      - name: Install Rust (Android targets)
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
       - name: Native Build
         if: steps.cache.outputs.cache-hit != 'true'
         run: ./run lib core

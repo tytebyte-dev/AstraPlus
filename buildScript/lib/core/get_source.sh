@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 source "buildScript/init/env.sh"
 ENV_NB4A=1
@@ -8,7 +8,7 @@ source "buildScript/lib/core/get_source_env.sh"
 PROJECT_ROOT="$(pwd)"
 PATCHES_DIR="$(realpath "$PROJECT_ROOT/patches")"
 
-# Helper: clone (if needed), checkout target commit, apply patch if present
+# Clone (or update), force-checkout the target commit (full tree), then apply patch.
 fetch_and_patch() {
   local name="$1"
   local repo="$2"
@@ -16,42 +16,44 @@ fetch_and_patch() {
   local patch_file="$4"   # absolute path or empty
   local dir_name="${5:-$name}"
 
-  if [ ! -d "$dir_name" ]; then
+  if [ ! -d "$dir_name/.git" ]; then
     echo "==> Cloning $name from $repo"
-    git clone --no-checkout "$repo" "$dir_name"
+    rm -rf "$dir_name"
+    git clone "$repo" "$dir_name"
   fi
 
   pushd "$dir_name" > /dev/null
 
-  # Make sure we have the commit
-  if ! git cat-file -e "$commit^{commit}" 2>/dev/null; then
-    echo "==> Fetching $name"
-    git fetch --depth 1 origin "$commit" || git fetch origin
+  # Ensure we have the commit object
+  if ! git cat-file -e "${commit}^{commit}" 2>/dev/null; then
+    echo "==> Fetching $name ($commit)"
+    git fetch --depth 1 origin "$commit" 2>/dev/null || git fetch origin
   fi
 
-  current="$(git rev-parse HEAD 2>/dev/null || echo none)"
-  if [ "$current" != "$commit" ]; then
-    echo "==> Checking out $name @ $commit"
-    git checkout --force "$commit"
-  else
-    echo "==> $name already at $commit"
-  fi
+  echo "==> Checking out $name @ $commit (full tree)"
+  git checkout --force "$commit"
+  # Make sure the index and working tree are fully populated
+  git reset --hard "$commit"
+  git clean -fdx -e .git 2>/dev/null || true
 
-  # Apply patch if provided and not already applied
-  if [ -n "$patch_file" ] && [ -f "$patch_file" ]; then
+  # Apply patch if provided
+  if [ -n "${patch_file:-}" ] && [ -f "$patch_file" ]; then
+    echo "==> Applying patch for $name: $(basename "$patch_file")"
     if git apply --check "$patch_file" 2>/dev/null; then
-      echo "==> Applying patch for $name: $(basename "$patch_file")"
       git apply "$patch_file"
+      echo "    applied cleanly with git apply"
+    elif patch -p1 --dry-run < "$patch_file" >/dev/null 2>&1; then
+      patch -p1 < "$patch_file"
+      echo "    applied cleanly with patch -p1"
     else
-      # Maybe already applied – try reverse check
-      if git apply --reverse --check "$patch_file" 2>/dev/null; then
-        echo "==> Patch for $name already applied, skipping"
+      # Last attempt: 3-way
+      if git apply --3way "$patch_file" 2>/dev/null; then
+        echo "    applied with git apply --3way"
       else
-        echo "==> Warning: could not apply patch for $name cleanly, trying with --3way"
-        git apply --3way "$patch_file" || {
-          echo "ERROR: Failed to apply patch for $name"
-          exit 1
-        }
+        echo "ERROR: Failed to apply patch for $name"
+        echo "Patch file: $patch_file"
+        git status --short | head -20
+        exit 1
       fi
     fi
   fi
@@ -59,6 +61,7 @@ fetch_and_patch() {
   popd > /dev/null
 }
 
+echo "==> Fetching and patching dependencies (patches from $PATCHES_DIR)"
 pushd ..
 
 #### sing-box
@@ -85,7 +88,7 @@ fetch_and_patch "byedpi" \
   "$COMMIT_BYEDPI" \
   "$PATCHES_DIR/byedpi/0001-byedpi-jni-api.patch"
 
-#### MasterDnsVPN (used as MasterDnsVPN-plus by docker/build)
+#### MasterDnsVPN (expected as MasterDnsVPN-plus by core.docker.sh)
 fetch_and_patch "MasterDnsVPN" \
   "$REPO_MASTERDNSVPN" \
   "$COMMIT_MASTERDNSVPN" \
@@ -93,5 +96,4 @@ fetch_and_patch "MasterDnsVPN" \
   "MasterDnsVPN-plus"
 
 popd
-
 echo "==> All dependencies fetched and patched."

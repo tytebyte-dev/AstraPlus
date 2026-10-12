@@ -8,12 +8,13 @@ source "buildScript/lib/core/get_source_env.sh"
 PROJECT_ROOT="$(pwd)"
 PATCHES_DIR="$(realpath "$PROJECT_ROOT/patches")"
 
-# Clone (or update), force-checkout the target commit (full tree), then apply patch.
+# Clone (or update), force-checkout the target commit (full tree), then apply patch(es).
+# patch_file can be a single file, a directory of *.patch, or empty.
 fetch_and_patch() {
   local name="$1"
   local repo="$2"
   local commit="$3"
-  local patch_file="$4"   # absolute path or empty
+  local patch_spec="${4:-}"   # file, directory, or empty
   local dir_name="${5:-$name}"
 
   if [ ! -d "$dir_name/.git" ]; then
@@ -24,20 +25,32 @@ fetch_and_patch() {
 
   pushd "$dir_name" > /dev/null
 
-  # Ensure we have the commit object
   if ! git cat-file -e "${commit}^{commit}" 2>/dev/null; then
     echo "==> Fetching $name ($commit)"
-    git fetch --depth 1 origin "$commit" 2>/dev/null || git fetch origin
+    git fetch --depth 1 origin "$commit" 2>/dev/null || \
+      git fetch --depth 1 origin tag "$commit" 2>/dev/null || \
+      git fetch origin
   fi
 
   echo "==> Checking out $name @ $commit (full tree)"
   git checkout --force "$commit"
-  # Make sure the index and working tree are fully populated
   git reset --hard "$commit"
   git clean -fdx -e .git 2>/dev/null || true
 
-  # Apply patch if provided
-  if [ -n "${patch_file:-}" ] && [ -f "$patch_file" ]; then
+  # Collect patch files
+  local patches=()
+  if [ -n "$patch_spec" ]; then
+    if [ -d "$patch_spec" ]; then
+      while IFS= read -r -d '' f; do
+        patches+=("$f")
+      done < <(find "$patch_spec" -maxdepth 1 -type f -name "*.patch" | sort -z)
+    elif [ -f "$patch_spec" ]; then
+      patches+=("$patch_spec")
+    fi
+  fi
+
+  for patch_file in "${patches[@]:-}"; do
+    [ -f "$patch_file" ] || continue
     echo "==> Applying patch for $name: $(basename "$patch_file")"
     if git apply --check "$patch_file" 2>/dev/null; then
       git apply "$patch_file"
@@ -45,18 +58,14 @@ fetch_and_patch() {
     elif patch -p1 --dry-run < "$patch_file" >/dev/null 2>&1; then
       patch -p1 < "$patch_file"
       echo "    applied cleanly with patch -p1"
+    elif git apply --3way "$patch_file" 2>/dev/null; then
+      echo "    applied with git apply --3way"
     else
-      # Last attempt: 3-way
-      if git apply --3way "$patch_file" 2>/dev/null; then
-        echo "    applied with git apply --3way"
-      else
-        echo "ERROR: Failed to apply patch for $name"
-        echo "Patch file: $patch_file"
-        git status --short | head -20
-        exit 1
-      fi
+      echo "ERROR: Failed to apply patch for $name: $patch_file"
+      git status --short | head -20
+      exit 1
     fi
-  fi
+  done
 
   popd > /dev/null
 }
@@ -64,11 +73,25 @@ fetch_and_patch() {
 echo "==> Fetching and patching dependencies (patches from $PATCHES_DIR)"
 pushd ..
 
-#### sing-box
+#### sing-box (must be first — nested patches for amneziawg-go / utls live inside it)
 fetch_and_patch "sing-box" \
   "$REPO_SING_BOX" \
   "$COMMIT_SING_BOX" \
   "$PATCHES_DIR/sing-box.patch"
+
+SING_BOX_DIR="$(pwd)/sing-box"
+
+#### amneziawg-go (patches come from sing-box/patches/amneziawg-go after sing-box is patched)
+fetch_and_patch "amneziawg-go" \
+  "$REPO_AMNEZIAWG_GO" \
+  "$COMMIT_AMNEZIAWG_GO" \
+  "$SING_BOX_DIR/patches/amneziawg-go"
+
+#### utls (patches come from sing-box/patches/utls)
+fetch_and_patch "utls" \
+  "$REPO_UTLS" \
+  "$COMMIT_UTLS" \
+  "$SING_BOX_DIR/patches/utls"
 
 #### sing-vmess
 fetch_and_patch "sing-vmess" \
@@ -88,7 +111,7 @@ fetch_and_patch "byedpi" \
   "$COMMIT_BYEDPI" \
   "$PATCHES_DIR/byedpi/0001-byedpi-jni-api.patch"
 
-#### MasterDnsVPN (expected as MasterDnsVPN-plus by core.docker.sh)
+#### MasterDnsVPN (expected as MasterDnsVPN-plus by core.docker.sh / go.mod)
 fetch_and_patch "MasterDnsVPN" \
   "$REPO_MASTERDNSVPN" \
   "$COMMIT_MASTERDNSVPN" \

@@ -1,4 +1,13 @@
-export COMMIT_SING_BOX="1bd868429d0f25ee025ae61fed0f910fba1a1cef"
-export COMMIT_SING_VMESS="f6dade3e1e27073fa8c82b5d5c568fd5fb11cf33"
-export COMMIT_LIBNEKO="a534de0608afbfe181b4d1885dd5406252db85b0"
+# Target commits that match the patches in patches/
+export COMMIT_SING_BOX="7054cac5124465ffdb145870d7c01885566711b1"
+export COMMIT_SING_VMESS="887f058c04c5b86d88188acc32093d0d62f53b6c"
+export COMMIT_LIBNEKO="6a85c185d62435a5293ef70ac3b638ae3ee1efa7"
 export COMMIT_BYEDPI="ba532298de7b28cfe854aea83d061369d13ca290"
+export COMMIT_MASTERDNSVPN="7de2476f1c33e69eec35360c52810dab43c5c986"
+
+# Upstream repositories
+export REPO_SING_BOX="https://github.com/SagerNet/sing-box.git"
+export REPO_SING_VMESS="https://github.com/starifly/sing-vmess.git"
+export REPO_LIBNEKO="https://github.com/starifly/libneko.git"
+export REPO_BYEDPI="https://github.com/hufrea/byedpi.git"
+export REPO_MASTERDNSVPN="https://github.com/masterking32/MasterDnsVPN.git"

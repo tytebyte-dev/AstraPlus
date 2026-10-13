@@ -239,7 +239,10 @@ object SubscriptionRoutingRepository {
         return try {
             val response = client.newRequest().apply {
                 if (DataStore.allowInsecureOnRequest) allowInsecure()
-                setURL(subscription.link)
+                setURL(
+                    io.nekohasekai.sagernet.group.SubscriptionMirrors.candidates(subscription.link)
+                        .firstOrNull() ?: subscription.link,
+                )
                 val fingerprint =
                     buildSubscriptionRequestFingerprint(
                         subscription = subscription,

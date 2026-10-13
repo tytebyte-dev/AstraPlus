@@ -651,6 +651,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
 
     var rulesFirstCreate by profileCacheStore.boolean("rulesFirstCreate")
     var proxyAppsFirstSetup by configurationStore.boolean("proxyAppsFirstSetup")
+    var defaultSubscriptionsSeeded by configurationStore.boolean("defaultSubscriptionsSeeded")
     var firstRunRoutingRegion by configurationStore.string("firstRunRoutingRegion")
 
     // var enableTLSFragment by configurationStore.boolean(Key.ENABLE_TLS_FRAGMENT)

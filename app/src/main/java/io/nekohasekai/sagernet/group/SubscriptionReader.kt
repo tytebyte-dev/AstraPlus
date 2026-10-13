@@ -13,7 +13,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import moe.matsuri.nb4a.utils.Util
+import java.io.IOException
 import java.util.Locale
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -81,6 +83,26 @@ internal object DefaultSubscriptionReader : SubscriptionReader {
 
     override suspend fun read(subscription: SubscriptionBean): SubscriptionDocument {
         val link = subscription.link
+        if (link.startsWith("content://")) return readFrom(subscription, link)
+
+        val mirrors = SubscriptionMirrors.candidates(link)
+        if (mirrors.size <= 1) return readFrom(subscription, mirrors.firstOrNull() ?: link)
+
+        var lastError: Throwable? = null
+        for (mirror in mirrors) {
+            try {
+                val document = readFrom(subscription, mirror)
+                if (document.body.isNotBlank()) return document
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                lastError = error
+            }
+        }
+        throw lastError ?: IOException("All subscription mirrors returned an empty response")
+    }
+
+    private suspend fun readFrom(subscription: SubscriptionBean, link: String): SubscriptionDocument {
         if (link.startsWith("content://")) {
             val body = app.contentResolver.openInputStream(link.toUri())?.use { input ->
                 input.bufferedReader().use { it.readText() }

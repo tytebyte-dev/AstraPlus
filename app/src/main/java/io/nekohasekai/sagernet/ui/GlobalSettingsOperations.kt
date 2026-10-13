@@ -9,8 +9,6 @@ import androidx.activity.ComponentDialog
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import com.jakewharton.processphoenix.ProcessPhoenix
-import io.nekohasekai.sagernet.AppIcon
-import io.nekohasekai.sagernet.AppIconManager
 import io.nekohasekai.sagernet.BuildConfig
 import io.nekohasekai.sagernet.Key
 import io.nekohasekai.sagernet.R
@@ -106,7 +104,6 @@ internal class GlobalSettingsOperations(private val fragment: SettingsFragment) 
             positiveButton = context.getText(R.string.yes),
             negativeButton = context.getText(R.string.no),
             onPositive = {
-                AppIconManager.set(context, AppIcon.NEKOBOX_PLUS)
                 DataStore.configurationStore.reset()
                 triggerFullRestart(context)
             },

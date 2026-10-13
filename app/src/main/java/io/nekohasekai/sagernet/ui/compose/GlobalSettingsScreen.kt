@@ -6,7 +6,6 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.background
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,20 +21,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.Key
-import io.nekohasekai.sagernet.AppIconManager
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.ktx.getColorAttr
-import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.foundation.shape.CircleShape
 import kotlinx.coroutines.delay
 
@@ -70,7 +64,6 @@ internal fun GlobalSettingsGroupScreen(
     onAction: (String) -> Unit,
 ) {
     val context = LocalContext.current
-    val resources = LocalResources.current
     val store = DataStore.configurationStore
     val notSet = stringResource(R.string.not_set)
     val cancel = stringResource(android.R.string.cancel)
@@ -202,31 +195,6 @@ internal fun GlobalSettingsGroupScreen(
                                 )
                             },
                         ) { onAction(item.key) }
-                        "changeIcon" -> {
-                            val currentIcon = AppIconManager.current(context)
-                            val previewSize = (56 * resources.displayMetrics.density).toInt()
-                            val preview = remember(currentIcon, revision, previewSize) {
-                                AppIconManager.loadIcon(context, currentIcon)
-                                    ?.toBitmap(previewSize, previewSize)
-                                    ?.asImageBitmap()
-                            }
-                            ProfileCustomActionRow(
-                                title = item.title,
-                                summary = item.fixedSummary.takeIf { it != 0 }
-                                    ?.let { stringResource(it) },
-                                enabled = enabled(item),
-                                dynamicSummary = false,
-                                leading = {
-                                    if (preview != null) {
-                                        Image(
-                                            painter = BitmapPainter(preview),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(40.dp),
-                                        )
-                                    }
-                                },
-                            ) { onAction(item.key) }
-                        }
                         else -> ProfileActionRow(
                             item.icon, item.title,
                             item.fixedSummary.takeIf { it != 0 }?.let { stringResource(it) },
@@ -338,12 +306,6 @@ private val GLOBAL_SETTINGS: Map<String, List<GlobalSettingItem>> = mapOf(
         action("configureCustomTheme", R.drawable.ic_action_settings, R.string.configure_custom_theme),
         list("nightTheme", R.drawable.ic_baseline_wb_sunny_24, R.string.night_mode, R.array.night_mode, R.array.int_array_4),
         list("appLanguage", R.drawable.baseline_translate_24, R.string.language, R.array.language_entries, R.array.language_values),
-        action(
-            "changeIcon",
-            R.drawable.ic_action_settings,
-            R.string.change_icon,
-            R.string.change_icon_android_tv_summary,
-        ),
         sw("useToolbar", R.drawable.ic_baseline_view_list_24, R.string.use_toolbar, R.string.use_toolbar_summary),
         action("configureToolbarLayout", R.drawable.ic_baseline_tune_24, R.string.toolbar_layout),
         sw("showProfileCountOnTabs", R.drawable.baseline_keyboard_tab_24, R.string.show_profile_count_on_tabs, R.string.show_profile_count_on_tabs_summary),

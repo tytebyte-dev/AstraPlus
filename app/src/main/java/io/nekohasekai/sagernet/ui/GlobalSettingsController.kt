@@ -68,7 +68,6 @@ internal class GlobalSettingsController(
     }
 
     fun isEnabled(key: String): Boolean = when (key) {
-        Key.CHANGE_ICON -> !SagerNet.isTv
         Key.NIGHT_THEME -> !Theme.isNightModeForced(DataStore.appTheme)
         Key.PROFILE_TRAFFIC_STATISTICS -> DataStore.profileTrafficUpdateInterval != 0
         Key.REMOTE_DNS_DEADLINE -> activeDnsLineCount(DataStore.remoteDns) > 1
@@ -146,11 +145,6 @@ internal class GlobalSettingsController(
         when (key) {
             Key.APP_THEME -> context.showThemePickerDialog(
                 context.getText(R.string.theme), includeCustom = true, onThemeSelected = ::applyTheme,
-            )
-            Key.CHANGE_ICON -> AppIconDialog.show(
-                context,
-                context.getText(R.string.change_icon),
-                onSelected = { invalidate() },
             )
             "configureCustomTheme" -> activity.displayFragment(CustomThemeFragment())
             Key.CONFIGURE_TOOLBAR_LAYOUT -> context.startActivity(Intent(context, ToolbarLayoutActivity::class.java))

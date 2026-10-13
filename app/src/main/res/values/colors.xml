@@ -2,7 +2,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
     <color name="splash_background">#F5F7F9</color>
-    <color name="app_icon_red_background">#BC0000</color>
 
     <integer-array name="material_colors">
         <item>@color/material_red_500</item>

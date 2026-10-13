@@ -17,7 +17,7 @@
     <string name="app_desc">Um conjunto de ferramentas de proxy universal para Android, escrito em Kotlin.</string>
     <string name="group_subscription_link">Link de inscrição</string>
     <string name="group_update">Atualizar</string>
-    <string name="app_name" translatable="false">NekoBox+</string>
+    <string name="app_name" translatable="false">Astra+</string>
     <string name="custom_theme">Personalizado</string>
     <string name="custom_theme_unsupported">O tema personalizado requer Android 11 ou mais recente.</string>
     <string name="custom_theme_colors">Cores</string>
@@ -607,7 +607,7 @@
     <string name="searchview_clear_text_content_description">Limpar campo de texto</string>
     <string name="side_sheet_accessibility_pane_title">Folha lateral</string>
     <string name="v7_preference_off">OFF</string>
-    <string name="app_name_long" translatable="false">NekoBox+ for Android</string>
+    <string name="app_name_long" translatable="false">Astra+ for Android</string>
     <string name="configure_custom_theme">Configurar tema personalizado</string>
     <string name="custom_theme_base_settings">Configurações básicas</string>
     <string name="copy_from_another_theme">Copiar de outro tema</string>
@@ -1054,7 +1054,7 @@
     <string name="outbound">Saída</string>
     <string name="network_type">Tipo de rede</string>
     <string name="wifi_bssid">BSSID de Wi-Fi</string>
-    <string name="wifi_geolocation_required_toast">NekoBox+ não conseguiu ler a rede Wi-Fi, ativar a geolocalização</string>
+    <string name="wifi_geolocation_required_toast">Astra+ não conseguiu ler a rede Wi-Fi, ativar a geolocalização</string>
     <string name="wifi_background_location_permission_message">As regras SSID e BSSID de Wi-Fi precisam de acesso à localização em segundo plano para funcionar enquanto o NekoBox + não está aberto. Nas configurações do Android, escolha “%s”.</string>
     <string name="wifi_background_location_permission_continue_without">Continuar sem acesso em segundo plano</string>
     <string name="title_tun_system_dns_traffic">Rota de tráfego DNS do sistema para TUN</string>

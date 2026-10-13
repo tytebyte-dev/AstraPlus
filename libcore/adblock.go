@@ -32,7 +32,7 @@ import (
 const adblockCAName = "NekoBox+ Adblock CA"
 
 func init() {
-	assets.ErrorPagesGenerator = "NekoBox+"
+	assets.ErrorPagesGenerator = "Astra+"
 }
 
 type adblockStats struct {

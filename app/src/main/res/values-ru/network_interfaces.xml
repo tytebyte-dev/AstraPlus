@@ -8,13 +8,13 @@
     <string name="network_interfaces_reachability">Общий доступ включает прослушивание всех IPv4-интерфейсов. Адреса соответствуют активному прокси; доступ с другого устройства также зависит от его сети и настроек точки доступа или брандмауэра телефона.</string>
     <string name="network_interfaces_enable_sharing">Включить общий доступ</string>
     <string name="network_interfaces_custom_config">Этот профиль использует полную пользовательскую конфигурацию. Для общего доступа настройте входящий mixed- или HTTP-прокси в самом профиле.</string>
-    <string name="network_interfaces_applying">Применение настроек общего доступа и перезапуск NekoBox+…</string>
-    <string name="network_interfaces_saved">Настройки общего доступа сохранены. Запустите NekoBox+ для их применения.</string>
+    <string name="network_interfaces_applying">Применение настроек общего доступа и перезапуск Astra+…</string>
+    <string name="network_interfaces_saved">Настройки общего доступа сохранены. Запустите Astra+ для их применения.</string>
     <string name="network_interfaces_sharing_enabled">Общий доступ к IPv4-прокси включён.</string>
     <string name="network_interfaces_sharing_failed">Не удалось применить общий доступ. Проверьте подключение и пользовательские переопределения входящего прокси, затем повторите попытку.</string>
     <string name="network_interfaces_permission_denied">Для общего доступа к прокси требуется разрешение на доступ к локальной сети. Настройки не изменены.</string>
     <string name="network_interfaces_permission_needed">Для приёма подключений с других устройств требуется разрешение на доступ к локальной сети.</string>
-    <string name="network_interfaces_disconnected">NekoBox+ не подключён. Активных адресов прокси нет.</string>
+    <string name="network_interfaces_disconnected">Astra+ не подключён. Активных адресов прокси нет.</string>
     <string name="network_interfaces_no_proxy">Нет активного входящего mixed- или HTTP-прокси.</string>
     <string name="network_interfaces_partial">Некоторые сведения об интерфейсах недоступны. Android может ограничивать доступ к интерфейсам, MAC-адресам, маршрутам и DNS.</string>
     <string name="network_interfaces_empty">Доступные сетевые интерфейсы не найдены. Попробуйте обновить.</string>
@@ -70,5 +70,5 @@
     <string name="network_interfaces_warning_tproxy">Перехват трафика подключённых устройств через TPROXY отключён. Включите общий доступ, чтобы включить проксирование подключённых устройств.</string>
     <string name="network_interfaces_warning_ipv4">Режим «Только IPv6» не позволяет TPROXY перехватывать IPv4-трафик подключённых устройств. Разрешите IPv4 в настройках IPv6.</string>
     <string name="network_interfaces_custom_tproxy">Профиль использует полную пользовательскую конфигурацию. Автоматическое изменение общего доступа недоступно; настройте входящие подключения TPROXY и маршрутизацию для раздачи вручную.</string>
-    <string name="network_interfaces_warning_not_applied">Текущая конфигурация не соответствует настройке общего доступа. Перезапустите NekoBox+ для её применения.</string>
+    <string name="network_interfaces_warning_not_applied">Текущая конфигурация не соответствует настройке общего доступа. Перезапустите Astra+ для её применения.</string>
 </resources>

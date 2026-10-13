@@ -379,7 +379,7 @@
     <string name="ssh_private_key">مفتاح خاص</string>
     <string name="ssh_public_key">المفتاح العمومي</string>
     <string name="ssh_auth_type_none">لا شيء</string>
-    <string name="app_name" translatable="false">NekoBox+</string>
+    <string name="app_name" translatable="false">Astra+</string>
     <string name="custom_theme">مخصص</string>
     <string name="custom_theme_unsupported">يتطلب المظهر المخصص نظام Android 11 أو إصدارًا أحدث.</string>
     <string name="custom_theme_colors">الألوان</string>
@@ -659,7 +659,7 @@
     <string name="source_port">منفذ المصدر</string>
     <string name="cellular">الخلوية</string>
     <string name="wifi_ssid">واي فاي SSID</string>
-    <string name="wifi_geolocation_permission_required_toast">لا يستطيع NekoBox+ تمكين قواعد Wi-Fi، ولا يمكنه الوصول إلى الموقع الجغرافي</string>
+    <string name="wifi_geolocation_permission_required_toast">لا يستطيع Astra+ تمكين قواعد Wi-Fi، ولا يمكنه الوصول إلى الموقع الجغرافي</string>
     <string name="wifi_background_location_permission_title">السماح بقواعد Wi-Fi في الخلفية</string>
     <string name="wifi_background_location_permission_allow_all_the_time">السماح في كل وقت</string>
     <string name="source_ip">مصدر IP</string>
@@ -794,7 +794,7 @@
     <string name="searchview_clear_text_content_description">مسح حقل النص</string>
     <string name="side_sheet_accessibility_pane_title">ورقة جانبية</string>
     <string name="v7_preference_off">OFF</string>
-    <string name="app_name_long" translatable="false">NekoBox+ for Android</string>
+    <string name="app_name_long" translatable="false">Astra+ for Android</string>
     <string name="configure_custom_theme">تكوين موضوع مخصص</string>
     <string name="custom_theme_base_settings">الإعدادات الأساسية</string>
     <string name="copy_from_another_theme">نسخ من موضوع آخر</string>
@@ -1056,8 +1056,8 @@
     <string name="outbound">الصادرة</string>
     <string name="network_type">نوع الشبكة</string>
     <string name="wifi_bssid">واي فاي BSSID</string>
-    <string name="wifi_geolocation_required_toast">لم يتمكن NekoBox+ من قراءة شبكة Wi-Fi، وتمكين تحديد الموقع الجغرافي</string>
-    <string name="wifi_background_location_permission_message">تحتاج قواعد Wi-Fi SSID وBSSID إلى الوصول إلى الموقع في الخلفية حتى تعمل عندما لا يكون NekoBox+ مفتوحًا. في إعدادات Android، اختر "%s".</string>
+    <string name="wifi_geolocation_required_toast">لم يتمكن Astra+ من قراءة شبكة Wi-Fi، وتمكين تحديد الموقع الجغرافي</string>
+    <string name="wifi_background_location_permission_message">تحتاج قواعد Wi-Fi SSID وBSSID إلى الوصول إلى الموقع في الخلفية حتى تعمل عندما لا يكون Astra+ مفتوحًا. في إعدادات Android، اختر "%s".</string>
     <string name="wifi_background_location_permission_continue_without">المتابعة دون الوصول إلى الخلفية</string>
     <string name="title_tun_system_dns_traffic">مسار حركة مرور نظام DNS لـ TUN</string>
     <string name="share_subscription_url">مشاركة عنوان URL الخاص بالاشتراك</string>

@@ -599,7 +599,7 @@
     <string name="snell_obfs_host">Obfs 主機</string>
     <string name="snell_reuse">重用</string>
     <string name="snell_reuse_summary">僅 v4/v5</string>
-    <string name="app_name" translatable="false">NekoBox+</string>
+    <string name="app_name" translatable="false">Astra+</string>
     <string name="custom_theme">客製化</string>
     <string name="custom_theme_unsupported">自訂主題需要 Android 11 或更高版本。</string>
     <string name="custom_theme_colors">顏色</string>
@@ -766,7 +766,7 @@
     <string name="source_port">來源連接埠</string>
     <string name="cellular">蜂窩網路</string>
     <string name="wifi_ssid">無線網路SSID</string>
-    <string name="wifi_geolocation_permission_required_toast">NekoBox+ 無法啟用 Wi-Fi 規則，無法存取地理定位</string>
+    <string name="wifi_geolocation_permission_required_toast">Astra+ 無法啟用 Wi-Fi 規則，無法存取地理定位</string>
     <string name="wifi_background_location_permission_title">允許後台 Wi-Fi 規則</string>
     <string name="wifi_background_location_permission_allow_all_the_time">允許所有時間</string>
     <string name="source_ip">來源IP</string>
@@ -897,7 +897,7 @@
     <string name="searchview_clear_text_content_description">清除文字字段</string>
     <string name="side_sheet_accessibility_pane_title">側板</string>
     <string name="v7_preference_off">OFF</string>
-    <string name="app_name_long" translatable="false">NekoBox+ for Android</string>
+    <string name="app_name_long" translatable="false">Astra+ for Android</string>
     <string name="configure_custom_theme">配置自訂主題</string>
     <string name="custom_theme_base_settings">基本設定</string>
     <string name="copy_from_another_theme">從另一個主題複製</string>
@@ -1055,8 +1055,8 @@
     <string name="outbound">出境</string>
     <string name="network_type">網路類型</string>
     <string name="wifi_bssid">無線網路 BSSID</string>
-    <string name="wifi_geolocation_required_toast">NekoBox+ 無法讀取 Wi-Fi 網絡，無法啟用地理定位</string>
-    <string name="wifi_background_location_permission_message">當 NekoBox+ 未開啟時，Wi-Fi SSID 和 BSSID 規則需要後台位置存取才能運作。在 Android 設定中，選擇“%s”。</string>
+    <string name="wifi_geolocation_required_toast">Astra+ 無法讀取 Wi-Fi 網絡，無法啟用地理定位</string>
+    <string name="wifi_background_location_permission_message">當 Astra+ 未開啟時，Wi-Fi SSID 和 BSSID 規則需要後台位置存取才能運作。在 Android 設定中，選擇“%s”。</string>
     <string name="wifi_background_location_permission_continue_without">無需後台訪問即可繼續</string>
     <string name="title_tun_system_dns_traffic">TUN 的系統 DNS 流量路由</string>
     <string name="share_subscription_url">分享訂閱網址</string>

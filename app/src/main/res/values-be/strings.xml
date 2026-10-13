@@ -108,7 +108,7 @@
     <string name="menu_about">Пра</string>
     <string name="menu_group">Група</string>
     <string name="menu_configuration">Канфігурацыя</string>
-    <string name="app_name" translatable="false">NekoBox+</string>
+    <string name="app_name" translatable="false">Astra+</string>
     <string name="custom_theme">Прыстасаваныя</string>
     <string name="custom_theme_unsupported">Карыстальніцкая тэма патрабуе Android 11 або больш позняй версіі.</string>
     <string name="custom_theme_colors">Колеры</string>
@@ -519,7 +519,7 @@
     <string name="source_port">Зыходны порт</string>
     <string name="cellular">Сотавы</string>
     <string name="wifi_ssid">SSID Wi-Fi</string>
-    <string name="wifi_geolocation_permission_required_toast">NekoBox+ не можа ўключыць правілы Wi-Fi, няма доступу да геалакацыі</string>
+    <string name="wifi_geolocation_permission_required_toast">Astra+ не можа ўключыць правілы Wi-Fi, няма доступу да геалакацыі</string>
     <string name="wifi_background_location_permission_title">Дазволіць правілы Wi-Fi у фонавым рэжыме</string>
     <string name="wifi_background_location_permission_allow_all_the_time">Дазвольце ўвесь час</string>
     <string name="source_ip">Крыніца IP</string>
@@ -654,7 +654,7 @@
     <string name="searchview_clear_text_content_description">Ачысціць тэкставае поле</string>
     <string name="side_sheet_accessibility_pane_title">Бакавы ліст</string>
     <string name="v7_preference_off">OFF</string>
-    <string name="app_name_long" translatable="false">NekoBox+ for Android</string>
+    <string name="app_name_long" translatable="false">Astra+ for Android</string>
     <string name="configure_custom_theme">Наладзьце карыстальніцкую тэму</string>
     <string name="custom_theme_base_settings">Базавыя налады</string>
     <string name="copy_from_another_theme">Скапіруйце з іншай тэмы</string>
@@ -1056,8 +1056,8 @@
     <string name="outbound">Выязны</string>
     <string name="network_type">Тып сеткі</string>
     <string name="wifi_bssid">BSSID Wi-Fi</string>
-    <string name="wifi_geolocation_required_toast">NekoBox+ не можа прачытаць сетку Wi-Fi, уключыце геалакацыю</string>
-    <string name="wifi_background_location_permission_message">Правілам Wi-Fi SSID і BSSID патрэбны фонавы доступ да месцазнаходжання, каб працаваць, калі NekoBox+ не адкрыты. У наладах Android абярыце «%s».</string>
+    <string name="wifi_geolocation_required_toast">Astra+ не можа прачытаць сетку Wi-Fi, уключыце геалакацыю</string>
+    <string name="wifi_background_location_permission_message">Правілам Wi-Fi SSID і BSSID патрэбны фонавы доступ да месцазнаходжання, каб працаваць, калі Astra+ не адкрыты. У наладах Android абярыце «%s».</string>
     <string name="wifi_background_location_permission_continue_without">Працягнуць без фонавага доступу</string>
     <string name="title_tun_system_dns_traffic">Маршрут сістэмнага DNS-трафіку для TUN</string>
     <string name="share_subscription_url">Абагуліць URL падпіскі</string>

@@ -84,8 +84,8 @@
     <string name="always_show_address">Показывать адрес</string>
     <string name="always_show_address_sum">Всегда показывать адрес сервера в карточке</string>
     <string name="app_desc">Универсальный прокси-инструмент для Android на Kotlin.</string>
-    <string name="app_name">NekoBox+</string>
-    <string name="app_name_long">NekoBox+ для Android</string>
+    <string name="app_name">Astra+</string>
+    <string name="app_name_long">Astra+ для Android</string>
     <string name="app_tls_version">Мин. TLS подписки</string>
     <string name="app_version">Версия</string>
     <string name="require_proxy_in_vpn">Локальный прокси в VPN</string>
@@ -1256,8 +1256,8 @@
     <string name="network_type">Тип сети</string>
     <string name="wifi_ssid">SSID Wi‑Fi</string>
     <string name="wifi_bssid">BSSID Wi‑Fi</string>
-    <string name="wifi_geolocation_permission_required_toast">NekoBox+ недоступны правила Wi-Fi, геолокация запрещена</string>
-    <string name="wifi_geolocation_required_toast">NekoBox+ не смог прочитать сеть Wi‑Fi, включите геолокацию</string>
+    <string name="wifi_geolocation_permission_required_toast">Astra+ недоступны правила Wi-Fi, геолокация запрещена</string>
+    <string name="wifi_geolocation_required_toast">Astra+ не смог прочитать сеть Wi‑Fi, включите геолокацию</string>
     <string name="wifi_background_location_permission_title">Разрешить правила Wi‑Fi в фоне</string>
     <string name="wifi_background_location_permission_message">Для правил SSID/BSSID нужен фоновый доступ к геолокации. В настройках Android выберите «%s».</string>
     <string name="wifi_background_location_permission_allow_all_the_time">Разрешить всегда</string>
@@ -1942,7 +1942,7 @@
     <string name="git_compacting">Сжатие истории резервных копий Git…</string>
     <string name="git_destructive_restore_warning">Выбранные разделы локальных данных будут заменены.</string>
     <string name="git_wrong_password">Неверный пароль шифрования или резервная копия повреждена.</string>
-    <string name="git_invalid_container">Выбранный коммит не содержит корректную резервную копию NekoBox+.</string>
+    <string name="git_invalid_container">Выбранный коммит не содержит корректную резервную копию Astra+.</string>
     <string name="git_unsupported_version">Версия контейнера резервной копии %1$d не поддерживается.</string>
     <string name="git_authentication_failed">Ошибка аутентификации. Проверьте имя пользователя и токен доступа.</string>
     <string name="git_force_push_rejected">Сервер отклонил изменение истории. Разрешите принудительную отправку для этой ветки и повторите попытку.</string>

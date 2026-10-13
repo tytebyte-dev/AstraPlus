@@ -352769,7 +352769,7 @@ index 3cbec7347b81ea9b6d64c26fa4316a201b853eff..033f15ce23972bbb0a953c7721e3777c
  	})
  }
 +
-+// Close also supports standalone read-only handles used by NekoBoxForAndroid.
++// Close also supports standalone read-only handles used by Astra+.
 +func (c *CacheFile) Close() error {
 +	db := c.database()
 +	if db == nil {
@@ -357195,7 +357195,7 @@ index 0000000000000000000000000000000000000000..b985aa4c4c86c414c9fde8062bc4a8b5
 --- /dev/null
 +++ b/patches/amneziawg-go/README
 @@ -0,0 +1,6 @@
-+All patches should be applied to amneziawg-go to get the version used by NekoBox+.
++All patches should be applied to amneziawg-go to get the version used by Astra+.
 +
 +Usage:
 +1. Clone https://github.com/amnezia-vpn/amneziawg-go
@@ -358083,7 +358083,7 @@ index 0000000000000000000000000000000000000000..9b691264efce645a60b1278bc273eaee
 --- /dev/null
 +++ b/patches/utls/README
 @@ -0,0 +1,6 @@
-+Should be applied to metacubex/utls to get the version used by NekoBox+.
++Should be applied to metacubex/utls to get the version used by Astra+.
 +
 +Usage:
 +1. Clone https://github.com/metacubex/utls

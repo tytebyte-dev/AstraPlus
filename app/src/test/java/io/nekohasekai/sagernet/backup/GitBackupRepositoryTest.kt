@@ -51,7 +51,7 @@ class GitBackupRepositoryTest {
         val points = repository.listRestorePoints(config(remote))
         assertEquals(2, points.size)
         assertTrue(points.all { it.verifiedContainer })
-        assertTrue(points.first().message.startsWith("NekoBox+ Backup - "))
+        assertTrue(points.first().message.startsWith("Astra+ Backup - "))
         assertArrayEquals(second, repository.readBackup(config(remote), points[0].commitId))
         assertArrayEquals(first, repository.readBackup(config(remote), points[1].commitId))
     }

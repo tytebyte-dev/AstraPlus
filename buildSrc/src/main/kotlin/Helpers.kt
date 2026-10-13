@@ -189,7 +189,7 @@ fun Project.setupApp() {
 
     androidComponents.onVariants { variant ->
         val flavorName = variant.productFlavors.firstOrNull { it.first == "vendor" }?.second
-        val fileNamePrefix = if (flavorName == "plus") "NekoBoxPlus-" else "NekoBox-"
+        val fileNamePrefix = if (flavorName == "plus") "AstraPlus-" else "Astra-"
         variant.outputs.forEach { output ->
             val originalFileName = output.outputFileName.get()
             output.outputFileName.set(

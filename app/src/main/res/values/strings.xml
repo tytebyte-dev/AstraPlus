@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="profile_insecure">Insecure profile</string>
-    <string name="app_name" translatable="false">NekoBox+</string>
-    <string name="app_name_long" translatable="false">NekoBox+ for Android</string>
+    <string name="app_name" translatable="false">Astra+</string>
+    <string name="app_name_long" translatable="false">Astra+ for Android</string>
     <string name="app_desc">The universal proxy toolchain for Android, written in Kotlin.</string>
     <string name="project">Project</string>
     <string name="github">Source code</string>
@@ -1357,10 +1357,10 @@
     <string name="network_type">Network Type</string>
     <string name="wifi_ssid">Wi-Fi SSID</string>
     <string name="wifi_bssid">Wi-Fi BSSID</string>
-    <string name="wifi_geolocation_permission_required_toast">NekoBox+ can\'t enable Wi-Fi rules, no geolocation access</string>
-    <string name="wifi_geolocation_required_toast">NekoBox+ couldn\'t read Wi-Fi network, enable geolocation</string>
+    <string name="wifi_geolocation_permission_required_toast">Astra+ can\'t enable Wi-Fi rules, no geolocation access</string>
+    <string name="wifi_geolocation_required_toast">Astra+ couldn\'t read Wi-Fi network, enable geolocation</string>
     <string name="wifi_background_location_permission_title">Allow Wi-Fi rules in background</string>
-    <string name="wifi_background_location_permission_message">Wi-Fi SSID and BSSID rules need background location access to work while NekoBox+ is not open. In Android settings, choose “%s”.</string>
+    <string name="wifi_background_location_permission_message">Wi-Fi SSID and BSSID rules need background location access to work while Astra+ is not open. In Android settings, choose “%s”.</string>
     <string name="wifi_background_location_permission_allow_all_the_time">Allow all the time</string>
     <string name="wifi_background_location_permission_continue_without">Continue without background access</string>
     <string name="source_ip">Source IP</string>
@@ -1977,7 +1977,7 @@
     <string name="git_compacting">Compacting Git backup history…</string>
     <string name="git_destructive_restore_warning">The selected sections of local data will be replaced.</string>
     <string name="git_wrong_password">The encryption password is incorrect, or the backup is corrupted.</string>
-    <string name="git_invalid_container">The selected commit does not contain a valid NekoBox+ backup.</string>
+    <string name="git_invalid_container">The selected commit does not contain a valid Astra+ backup.</string>
     <string name="git_unsupported_version">Backup container version %1$d is not supported.</string>
     <string name="git_authentication_failed">Authentication failed. Check the username and access token.</string>
     <string name="git_force_push_rejected">The server rejected the history update. Allow force-pushes for this branch and try again.</string>

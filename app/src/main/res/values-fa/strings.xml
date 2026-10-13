@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">NekoBox+</string>
-    <string name="app_name_long" translatable="false">NekoBox+ for Android</string>
+    <string name="app_name" translatable="false">Astra+</string>
+    <string name="app_name_long" translatable="false">Astra+ for Android</string>
     <string name="app_desc">مجموعه ابزار جامع پراکسی برای اندروید، نوشته‌شده با کاتلین.</string>
     <string name="project">پروژه</string>
     <string name="github">کد منبع</string>
@@ -791,7 +791,7 @@
     <string name="source_port">پورت منبع</string>
     <string name="cellular">سلولی</string>
     <string name="wifi_ssid">SSID وای فای</string>
-    <string name="wifi_geolocation_permission_required_toast">NekoBox+ نمی‌تواند قوانین Wi-Fi را فعال کند، بدون دسترسی به موقعیت جغرافیایی</string>
+    <string name="wifi_geolocation_permission_required_toast">Astra+ نمی‌تواند قوانین Wi-Fi را فعال کند، بدون دسترسی به موقعیت جغرافیایی</string>
     <string name="wifi_background_location_permission_title">اجازه دادن به قوانین Wi-Fi در پس‌زمینه</string>
     <string name="wifi_background_location_permission_allow_all_the_time">همیشه اجازه دهید</string>
     <string name="source_ip">آی پی منبع</string>
@@ -1066,8 +1066,8 @@
     <string name="outbound">خروجی</string>
     <string name="network_type">نوع شبکه</string>
     <string name="wifi_bssid">Wi-Fi BSSID</string>
-    <string name="wifi_geolocation_required_toast">NekoBox+ نتوانست شبکه Wi-Fi را بخواند، موقعیت جغرافیایی را فعال کنید</string>
-    <string name="wifi_background_location_permission_message">قوانین Wi-Fi SSID و BSSID برای کار کردن به موقعیت مکانی پس‌زمینه نیاز دارند تا زمانی که NekoBox+ باز نیست. در تنظیمات Android، "%s" را انتخاب کنید.</string>
+    <string name="wifi_geolocation_required_toast">Astra+ نتوانست شبکه Wi-Fi را بخواند، موقعیت جغرافیایی را فعال کنید</string>
+    <string name="wifi_background_location_permission_message">قوانین Wi-Fi SSID و BSSID برای کار کردن به موقعیت مکانی پس‌زمینه نیاز دارند تا زمانی که Astra+ باز نیست. در تنظیمات Android، "%s" را انتخاب کنید.</string>
     <string name="wifi_background_location_permission_continue_without">بدون دسترسی به پس‌زمینه ادامه دهید</string>
     <string name="title_tun_system_dns_traffic">مسیر ترافیک سیستم DNS برای TUN</string>
     <string name="share_subscription_url">URL اشتراک را به اشتراک بگذارید</string>

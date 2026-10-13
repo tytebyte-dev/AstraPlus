@@ -132,19 +132,19 @@ func marshalAndroidTunPayload(options *tun.Options) (string, error) {
 }
 
 // rejectUnsupportedTunOptions fails fast on sing-tun options that the Android
-// platform bridge cannot honor. Per-app routing is owned by NekoBox settings
+// platform bridge cannot honor. Per-app routing is owned by Astra+ settings
 // (allow/disallow applications) and must not be imported from the sing-box TUN
 // configuration, so package and UID scope options are rejected rather than
 // silently ignored.
 func rejectUnsupportedTunOptions(options *tun.Options) error {
 	if len(options.IncludeUID) > 0 || len(options.ExcludeUID) > 0 {
-		return E.New("android: unsupported uid options; use per-app routing in NekoBox settings")
+		return E.New("android: unsupported uid options; use per-app routing in Astra+ settings")
 	}
 	if len(options.IncludeAndroidUser) > 0 {
 		return E.New("android: unsupported android_user option")
 	}
 	if len(options.IncludePackage) > 0 || len(options.ExcludePackage) > 0 {
-		return E.New("android: unsupported package options; per-app routing is owned by NekoBox settings")
+		return E.New("android: unsupported package options; per-app routing is owned by Astra+ settings")
 	}
 	if len(options.IncludeMACAddress) > 0 || len(options.ExcludeMACAddress) > 0 {
 		return E.New("android: unsupported mac address options")

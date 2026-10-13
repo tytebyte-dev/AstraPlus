@@ -101,7 +101,7 @@
     <string name="key_opt">キー（オプション）</string>
     <string name="network">ネットワーク</string>
     <string name="speed_interval">速度通知のアップデート間隔</string>
-    <string name="app_name" translatable="false">NekoBox+</string>
+    <string name="app_name" translatable="false">Astra+</string>
     <string name="custom_theme">カスタム</string>
     <string name="custom_theme_unsupported">カスタムテーマにはAndroid 11以降が必要です。</string>
     <string name="custom_theme_colors">色</string>
@@ -650,7 +650,7 @@
     <string name="searchview_clear_text_content_description">クリアテキストフィールド</string>
     <string name="side_sheet_accessibility_pane_title">サイドシート</string>
     <string name="v7_preference_off">OFF</string>
-    <string name="app_name_long" translatable="false">NekoBox+ for Android</string>
+    <string name="app_name_long" translatable="false">Astra+ for Android</string>
     <string name="configure_custom_theme">カスタムテーマの構成</string>
     <string name="custom_theme_base_settings">基本設定</string>
     <string name="copy_from_another_theme">別のテーマからコピーする</string>

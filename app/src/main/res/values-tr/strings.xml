@@ -389,7 +389,7 @@
     <string name="naive_insecure_concurrency_summary">Kötü ağ koşullarında daha sağlam olmak için N eşzamanlı tünel bağlantısı kullan. Daha fazla bağlantı, tünellemeyi algılamayı kolaylaştırır ve daha az güvenli hale getirir. Bu proje, trafik çözümlemesine karşı en güçlü güvenlik için çaba göstermektedir. Güvensiz bir şekilde kullanmak amacını bozar.
 \n
 \nBunu kullanmanız gerekiyorsa, sorunlarınızı çözüp çözmediğini görmek için önce N=2 değerini deneyin. Burada 4\'ten fazla bağlantı kullanmamanızı şiddetle tavsiye ederiz.</string>
-    <string name="app_name" translatable="false">NekoBox+</string>
+    <string name="app_name" translatable="false">Astra+</string>
     <string name="custom_theme">Özel</string>
     <string name="custom_theme_unsupported">Özel tema Android 11 veya daha yenisini gerektirir.</string>
     <string name="custom_theme_colors">Renkler</string>
@@ -654,7 +654,7 @@
     <string name="source_port">Kaynak Bağlantı Noktası</string>
     <string name="cellular">Hücresel</string>
     <string name="wifi_ssid">Wi-Fi SSID\'si</string>
-    <string name="wifi_geolocation_permission_required_toast">NekoBox+ Wi-Fi kurallarını etkinleştiremiyor, coğrafi konum erişimi yok</string>
+    <string name="wifi_geolocation_permission_required_toast">Astra+ Wi-Fi kurallarını etkinleştiremiyor, coğrafi konum erişimi yok</string>
     <string name="wifi_background_location_permission_title">Arka planda Wi-Fi kurallarına izin ver</string>
     <string name="wifi_background_location_permission_allow_all_the_time">Her zaman izin ver</string>
     <string name="source_ip">Kaynak IP\'si</string>
@@ -789,7 +789,7 @@
     <string name="searchview_clear_text_content_description">Metin alanını temizle</string>
     <string name="side_sheet_accessibility_pane_title">Yan sayfa</string>
     <string name="v7_preference_off">OFF</string>
-    <string name="app_name_long" translatable="false">NekoBox+ for Android</string>
+    <string name="app_name_long" translatable="false">Astra+ for Android</string>
     <string name="configure_custom_theme">Özel Temayı Yapılandır</string>
     <string name="custom_theme_base_settings">Temel ayarlar</string>
     <string name="copy_from_another_theme">Başka bir temadan kopyala</string>
@@ -1043,8 +1043,8 @@
     <string name="outbound">Giden</string>
     <string name="network_type">Ağ Türü</string>
     <string name="wifi_bssid">Wi-Fi BSSID\'si</string>
-    <string name="wifi_geolocation_required_toast">NekoBox+ Wi-Fi ağını okuyamadı, coğrafi konumu etkinleştiremedi</string>
-    <string name="wifi_background_location_permission_message">NekoBox+ açık değilken Wi-Fi SSID ve BSSID kurallarının çalışması için arka planda konum erişimine ihtiyacı vardır. Android ayarlarında “%s”yi seçin.</string>
+    <string name="wifi_geolocation_required_toast">Astra+ Wi-Fi ağını okuyamadı, coğrafi konumu etkinleştiremedi</string>
+    <string name="wifi_background_location_permission_message">Astra+ açık değilken Wi-Fi SSID ve BSSID kurallarının çalışması için arka planda konum erişimine ihtiyacı vardır. Android ayarlarında “%s”yi seçin.</string>
     <string name="wifi_background_location_permission_continue_without">Arka planda erişim olmadan devam et</string>
     <string name="title_tun_system_dns_traffic">TUN için sistem DNS trafik rotası</string>
     <string name="share_subscription_url">Abonelik URL\'sini Paylaş</string>

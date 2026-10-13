@@ -120,4 +120,4 @@ jobs:
       - name: Upload APKs (one artifact per ABI)
         uses: ./.github/actions/upload-apks
         with:
-          name-prefix: NekoBox
+          name-prefix: Astra

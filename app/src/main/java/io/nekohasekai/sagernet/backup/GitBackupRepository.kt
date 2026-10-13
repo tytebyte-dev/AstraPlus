@@ -28,7 +28,7 @@ class GitBackupRepository(private val cacheDirectory: File) {
     companion object {
         const val backupFileName = "nekobox_plus_backup.bin"
         const val httpUserAgent = "git/2.55.0"
-        private val backupMessage = Regex("""NekoBox\+ Backup - \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}""")
+        private val backupMessage = Regex("""(?:Astra|NekoBox)\+ Backup - \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}""")
     }
 
     init {
@@ -59,7 +59,7 @@ class GitBackupRepository(private val cacheDirectory: File) {
             if (config.branch in listBranches(config)) return false
             val now = Date()
             val identity = PersonIdent(
-                "NekoBox+",
+                "Astra+",
                 "nekobox-plus@localhost",
                 now,
                 java.util.TimeZone.getDefault(),
@@ -69,7 +69,7 @@ class GitBackupRepository(private val cacheDirectory: File) {
                 .setSign(false)
                 .setAuthor(identity)
                 .setCommitter(identity)
-                .setMessage("NekoBox+ Initialize backup branch")
+                .setMessage("Astra+ Initialize backup branch")
                 .call()
             val update = it.push()
                 .setRemote("origin")
@@ -98,9 +98,9 @@ class GitBackupRepository(private val cacheDirectory: File) {
                     File(cacheDirectory, backupFileName).writeBytes(encryptedBackup)
                     it.add().addFilepattern(backupFileName).call()
                     val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(now)
-                    val identity = PersonIdent("NekoBox+", "nekobox-plus@localhost", now, java.util.TimeZone.getDefault())
+                    val identity = PersonIdent("Astra+", "nekobox-plus@localhost", now, java.util.TimeZone.getDefault())
                     val commit = it.commit()
-                        .setMessage("NekoBox+ Backup - $timestamp")
+                        .setMessage("Astra+ Backup - $timestamp")
                         .setAuthor(identity)
                         .setCommitter(identity)
                         .setSign(false)

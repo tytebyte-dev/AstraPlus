@@ -371,7 +371,7 @@
     <string name="copy_package_name">Kopier pakkenavn</string>
     <string name="copy_label">Kopier navn</string>
     <string name="udp_connections">%d UDP-tilkoblinger</string>
-    <string name="app_name" translatable="false">NekoBox+</string>
+    <string name="app_name" translatable="false">Astra+</string>
     <string name="custom_theme">Egendefinert</string>
     <string name="custom_theme_unsupported">Egendefinert tema krever Android 11 eller nyere.</string>
     <string name="custom_theme_colors">Farger</string>
@@ -652,7 +652,7 @@
     <string name="source_port">Kildeport</string>
     <string name="cellular">Cellular</string>
     <string name="wifi_ssid">Wi-Fi SSID</string>
-    <string name="wifi_geolocation_permission_required_toast">NekoBox+ kan ikke aktivere Wi-Fi-regler, ingen tilgang til geolokalisering</string>
+    <string name="wifi_geolocation_permission_required_toast">Astra+ kan ikke aktivere Wi-Fi-regler, ingen tilgang til geolokalisering</string>
     <string name="wifi_background_location_permission_title">Tillat Wi-Fi-regler i bakgrunnen</string>
     <string name="wifi_background_location_permission_allow_all_the_time">Tillat hele tiden</string>
     <string name="source_ip">Kilde IP</string>
@@ -787,7 +787,7 @@
     <string name="searchview_clear_text_content_description">Tøm tekstfelt</string>
     <string name="side_sheet_accessibility_pane_title">Sideark</string>
     <string name="v7_preference_off">OFF</string>
-    <string name="app_name_long" translatable="false">NekoBox+ for Android</string>
+    <string name="app_name_long" translatable="false">Astra+ for Android</string>
     <string name="configure_custom_theme">Konfigurer tilpasset tema</string>
     <string name="custom_theme_base_settings">Grunninnstillinger</string>
     <string name="copy_from_another_theme">Kopier fra et annet tema</string>
@@ -1048,8 +1048,8 @@
     <string name="outbound">Utgående</string>
     <string name="network_type">Nettverkstype</string>
     <string name="wifi_bssid">Wi-Fi BSSID</string>
-    <string name="wifi_geolocation_required_toast">NekoBox+ kunne ikke lese Wi-Fi-nettverk, aktiver geolokalisering</string>
-    <string name="wifi_background_location_permission_message">Wi-Fi SSID- og BSSID-regler trenger posisjonstilgang i bakgrunnen for å fungere mens NekoBox+ ikke er åpen. I Android-innstillingene velger du "%s".</string>
+    <string name="wifi_geolocation_required_toast">Astra+ kunne ikke lese Wi-Fi-nettverk, aktiver geolokalisering</string>
+    <string name="wifi_background_location_permission_message">Wi-Fi SSID- og BSSID-regler trenger posisjonstilgang i bakgrunnen for å fungere mens Astra+ ikke er åpen. I Android-innstillingene velger du "%s".</string>
     <string name="wifi_background_location_permission_continue_without">Fortsett uten bakgrunnstilgang</string>
     <string name="title_tun_system_dns_traffic">System DNS trafikkrute for TUN</string>
     <string name="share_subscription_url">Del abonnements-URL</string>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">NekoBox+</string>
-    <string name="app_name_long" translatable="false">NekoBox+ for Android</string>
+    <string name="app_name" translatable="false">Astra+</string>
+    <string name="app_name_long" translatable="false">Astra+ for Android</string>
     <string name="app_desc">Універсальний набір інструментів проксі для Android, написаний на Kotlin.</string>
     <string name="project">Проєкт</string>
     <string name="github">Вихідний код</string>
@@ -722,7 +722,7 @@
     <string name="source_port">Порт джерела</string>
     <string name="cellular">Стільниковий</string>
     <string name="wifi_ssid">SSID Wi-Fi</string>
-    <string name="wifi_geolocation_permission_required_toast">NekoBox+ не може ввімкнути правила Wi-Fi, немає доступу до геолокації</string>
+    <string name="wifi_geolocation_permission_required_toast">Astra+ не може ввімкнути правила Wi-Fi, немає доступу до геолокації</string>
     <string name="wifi_background_location_permission_title">Дозволити правила Wi-Fi у фоновому режимі</string>
     <string name="wifi_background_location_permission_allow_all_the_time">Дозволяйте весь час</string>
     <string name="source_ip">Джерело IP</string>
@@ -1045,8 +1045,8 @@
     <string name="outbound">Вихідний</string>
     <string name="network_type">Тип мережі</string>
     <string name="wifi_bssid">BSSID Wi-Fi</string>
-    <string name="wifi_geolocation_required_toast">NekoBox+ не зміг прочитати мережу Wi-Fi, увімкніть геолокацію</string>
-    <string name="wifi_background_location_permission_message">Правила Wi-Fi SSID і BSSID потребують фонового доступу до місцезнаходження, щоб працювати, поки NekoBox+ не відкрито. У налаштуваннях Android виберіть «%s».</string>
+    <string name="wifi_geolocation_required_toast">Astra+ не зміг прочитати мережу Wi-Fi, увімкніть геолокацію</string>
+    <string name="wifi_background_location_permission_message">Правила Wi-Fi SSID і BSSID потребують фонового доступу до місцезнаходження, щоб працювати, поки Astra+ не відкрито. У налаштуваннях Android виберіть «%s».</string>
     <string name="wifi_background_location_permission_continue_without">Продовжити без фонового доступу</string>
     <string name="title_tun_system_dns_traffic">Маршрут системного трафіку DNS для TUN</string>
     <string name="share_subscription_url">Поділитися URL-адресою підписки</string>

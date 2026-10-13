@@ -8,13 +8,13 @@
     <string name="network_interfaces_reachability">Sharing listens on all IPv4 interfaces. Listed endpoints reflect the active listener; access from another device also depends on its network and the phone’s hotspot/firewall settings.</string>
     <string name="network_interfaces_enable_sharing">Enable sharing</string>
     <string name="network_interfaces_custom_config">This profile uses a full custom configuration. Configure its mixed or HTTP listener in the profile to enable sharing.</string>
-    <string name="network_interfaces_applying">Applying sharing settings and restarting NekoBox+…</string>
-    <string name="network_interfaces_saved">Sharing settings saved. Start NekoBox+ to apply them.</string>
+    <string name="network_interfaces_applying">Applying sharing settings and restarting Astra+…</string>
+    <string name="network_interfaces_saved">Sharing settings saved. Start Astra+ to apply them.</string>
     <string name="network_interfaces_sharing_enabled">IPv4 proxy sharing is enabled.</string>
     <string name="network_interfaces_sharing_failed">Sharing could not be applied. Check the connection and any custom listener overrides, then try again.</string>
     <string name="network_interfaces_permission_denied">Local network permission is required for proxy sharing. Settings were not changed.</string>
     <string name="network_interfaces_permission_needed">Local network permission is required to accept connections from other devices.</string>
-    <string name="network_interfaces_disconnected">NekoBox+ is disconnected. No active proxy endpoints.</string>
+    <string name="network_interfaces_disconnected">Astra+ is disconnected. No active proxy endpoints.</string>
     <string name="network_interfaces_no_proxy">No active mixed or HTTP proxy listener.</string>
     <string name="network_interfaces_partial">Some interface details could not be read. Android may restrict interface, MAC, route, or DNS information.</string>
     <string name="network_interfaces_empty">No accessible network interfaces found. Try refreshing.</string>
@@ -70,5 +70,5 @@
     <string name="network_interfaces_warning_tproxy">TPROXY capture of tethered traffic is disabled. Enable sharing to turn on “Proxy tethered devices”.</string>
     <string name="network_interfaces_warning_ipv4">IPv6-only mode prevents TPROXY from capturing IPv4 tethered traffic. Enable IPv4 in the IPv6 settings.</string>
     <string name="network_interfaces_custom_tproxy">This profile uses a full custom configuration. Automatic sharing changes are unavailable; configure its TPROXY tethering listeners and routing manually.</string>
-    <string name="network_interfaces_warning_not_applied">The running configuration does not match the sharing setting. Restart NekoBox+ to apply it.</string>
+    <string name="network_interfaces_warning_not_applied">The running configuration does not match the sharing setting. Restart Astra+ to apply it.</string>
 </resources>

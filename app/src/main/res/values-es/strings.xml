@@ -452,7 +452,7 @@
 
     <string name="connection_test_delete_unavailable">Borrado no disponible</string>
 
-    <string name="app_name" translatable="false">NekoBox+</string>
+    <string name="app_name" translatable="false">Astra+</string>
     <string name="custom_theme">personalizado</string>
     <string name="custom_theme_unsupported">El tema personalizado requiere Android 11 o posterior.</string>
     <string name="custom_theme_colors">Colores</string>
@@ -692,7 +692,7 @@
     <string name="source_port">Puerto de origen</string>
     <string name="cellular">Celular</string>
     <string name="wifi_ssid">SSID de Wi-Fi</string>
-    <string name="wifi_geolocation_permission_required_toast">NekoBox+ no puede habilitar reglas de Wi-Fi, no hay acceso a geolocalización</string>
+    <string name="wifi_geolocation_permission_required_toast">Astra+ no puede habilitar reglas de Wi-Fi, no hay acceso a geolocalización</string>
     <string name="wifi_background_location_permission_title">Permitir reglas de Wi-Fi en segundo plano</string>
     <string name="wifi_background_location_permission_allow_all_the_time">permitir todo el tiempo</string>
     <string name="source_ip">IP de origen</string>
@@ -827,7 +827,7 @@
     <string name="searchview_clear_text_content_description">Borrar campo de texto</string>
     <string name="side_sheet_accessibility_pane_title">hoja lateral</string>
     <string name="v7_preference_off">OFF</string>
-    <string name="app_name_long" translatable="false">NekoBox+ for Android</string>
+    <string name="app_name_long" translatable="false">Astra+ for Android</string>
     <string name="configure_custom_theme">Configurar tema personalizado</string>
     <string name="custom_theme_base_settings">Configuraciones básicas</string>
     <string name="copy_from_another_theme">Copiar de otro tema</string>
@@ -1061,8 +1061,8 @@
     <string name="outbound">saliente</string>
     <string name="network_type">Tipo de red</string>
     <string name="wifi_bssid">BSSID de Wi-Fi</string>
-    <string name="wifi_geolocation_required_toast">NekoBox+ no pudo leer la red Wi-Fi, habilite la geolocalización</string>
-    <string name="wifi_background_location_permission_message">Las reglas SSID y BSSID de Wi-Fi necesitan acceso a la ubicación en segundo plano para funcionar mientras NekoBox+ no está abierto. En la configuración de Android, elija "%s".</string>
+    <string name="wifi_geolocation_required_toast">Astra+ no pudo leer la red Wi-Fi, habilite la geolocalización</string>
+    <string name="wifi_background_location_permission_message">Las reglas SSID y BSSID de Wi-Fi necesitan acceso a la ubicación en segundo plano para funcionar mientras Astra+ no está abierto. En la configuración de Android, elija "%s".</string>
     <string name="wifi_background_location_permission_continue_without">Continuar sin acceso en segundo plano</string>
     <string name="title_tun_system_dns_traffic">Ruta de tráfico DNS del sistema para TUN</string>
     <string name="share_subscription_url">Compartir URL de suscripción</string>

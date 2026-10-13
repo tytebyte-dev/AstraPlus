@@ -199,7 +199,7 @@
     <string name="header_type">Jenis Tajuk</string>
     <string name="security">Enkripsi lapisan transportasi</string>
     <string name="alter_id">Ubah ID</string>
-    <string name="app_name" translatable="false">NekoBox+</string>
+    <string name="app_name" translatable="false">Astra+</string>
     <string name="custom_theme">Adat</string>
     <string name="custom_theme_unsupported">Tema khusus memerlukan Android 11 atau lebih baru.</string>
     <string name="custom_theme_colors">Warna</string>
@@ -564,7 +564,7 @@
     <string name="source_port">Pelabuhan Sumber</string>
     <string name="cellular">Seluler</string>
     <string name="wifi_ssid">SSID Wi-Fi</string>
-    <string name="wifi_geolocation_permission_required_toast">NekoBox+ tidak dapat mengaktifkan aturan Wi-Fi, tidak ada akses geolokasi</string>
+    <string name="wifi_geolocation_permission_required_toast">Astra+ tidak dapat mengaktifkan aturan Wi-Fi, tidak ada akses geolokasi</string>
     <string name="wifi_background_location_permission_title">Izinkan aturan Wi-Fi di latar belakang</string>
     <string name="wifi_background_location_permission_allow_all_the_time">Izinkan sepanjang waktu</string>
     <string name="source_ip">Sumber IP</string>
@@ -699,7 +699,7 @@
     <string name="searchview_clear_text_content_description">Hapus bidang teks</string>
     <string name="side_sheet_accessibility_pane_title">Lembar samping</string>
     <string name="v7_preference_off">OFF</string>
-    <string name="app_name_long" translatable="false">NekoBox+ for Android</string>
+    <string name="app_name_long" translatable="false">Astra+ for Android</string>
     <string name="configure_custom_theme">Konfigurasikan Tema Khusus</string>
     <string name="custom_theme_base_settings">Pengaturan dasar</string>
     <string name="copy_from_another_theme">Salin dari tema lain</string>
@@ -1054,8 +1054,8 @@
     <string name="outbound">Keluar</string>
     <string name="network_type">Jenis Jaringan</string>
     <string name="wifi_bssid">BSSID Wi-Fi</string>
-    <string name="wifi_geolocation_required_toast">NekoBox+ tidak dapat membaca jaringan Wi-Fi, aktifkan geolokasi</string>
-    <string name="wifi_background_location_permission_message">Aturan SSID Wi-Fi dan BSSID memerlukan akses lokasi latar belakang agar berfungsi saat NekoBox+ tidak terbuka. Di pengaturan Android, pilih “%s”.</string>
+    <string name="wifi_geolocation_required_toast">Astra+ tidak dapat membaca jaringan Wi-Fi, aktifkan geolokasi</string>
+    <string name="wifi_background_location_permission_message">Aturan SSID Wi-Fi dan BSSID memerlukan akses lokasi latar belakang agar berfungsi saat Astra+ tidak terbuka. Di pengaturan Android, pilih “%s”.</string>
     <string name="wifi_background_location_permission_continue_without">Lanjutkan tanpa akses latar belakang</string>
     <string name="title_tun_system_dns_traffic">Rute lalu lintas DNS sistem untuk TUN</string>
     <string name="share_subscription_url">Bagikan URL Langganan</string>

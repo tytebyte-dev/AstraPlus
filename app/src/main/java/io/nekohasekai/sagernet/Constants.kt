@@ -23,7 +23,6 @@ object Key {
     const val CUSTOM_THEME_PENDING_PREVIEW = "customThemePendingPreview"
     const val NIGHT_THEME = "nightTheme"
     const val APP_LANGUAGE = "appLanguage"
-    const val CHANGE_ICON = "changeIcon"
     const val USE_TOOLBAR = "useToolbar"
     const val TOOLBAR_LAYOUT = "toolbarLayout"
     const val CONFIGURE_TOOLBAR_LAYOUT = "configureToolbarLayout"

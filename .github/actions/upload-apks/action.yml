@@ -1,0 +1,84 @@
+name: Upload APKs per ABI
+description: Sort split APKs by ABI and upload each ABI as its own artifact (<prefix>-<abi>).
+
+inputs:
+  name-prefix:
+    description: Artifact name prefix, artifacts are named <prefix>-<abi>
+    required: false
+    default: APK
+  apk-dir:
+    description: Directory with the built APKs (searched recursively)
+    required: false
+    default: app/build/outputs/apk
+  retention-days:
+    description: Artifact retention in days, 0 = repository default
+    required: false
+    default: '0'
+
+runs:
+  using: composite
+  steps:
+    - name: Sort APKs by ABI
+      shell: bash
+      env:
+        APK_DIR: ${{ inputs.apk-dir }}
+      run: |
+        mkdir -p apk-out/{arm64-v8a,armeabi-v7a,x86_64,x86,universal}
+        find "$APK_DIR" -name '*.apk' | while read -r f; do
+          case "$f" in
+            *arm64-v8a*)   abi=arm64-v8a ;;
+            *armeabi-v7a*) abi=armeabi-v7a ;;
+            *x86_64*)      abi=x86_64 ;;
+            *x86*)         abi=x86 ;;
+            *universal*)   abi=universal ;;
+            *) echo "skip: $f"; continue ;;
+          esac
+          cp -v "$f" "apk-out/$abi/"
+        done
+        ls -lhR apk-out
+
+    # APK уже сжаты, поэтому compression-level: 0 (быстрее, размер тот же).
+    - name: Upload arm64-v8a
+      uses: actions/upload-artifact@v5
+      with:
+        name: ${{ inputs.name-prefix }}-arm64-v8a
+        path: apk-out/arm64-v8a/*.apk
+        compression-level: 0
+        retention-days: ${{ inputs.retention-days }}
+        if-no-files-found: error
+
+    - name: Upload armeabi-v7a
+      uses: actions/upload-artifact@v5
+      with:
+        name: ${{ inputs.name-prefix }}-armeabi-v7a
+        path: apk-out/armeabi-v7a/*.apk
+        compression-level: 0
+        retention-days: ${{ inputs.retention-days }}
+        if-no-files-found: error
+
+    - name: Upload x86_64
+      uses: actions/upload-artifact@v5
+      with:
+        name: ${{ inputs.name-prefix }}-x86_64
+        path: apk-out/x86_64/*.apk
+        compression-level: 0
+        retention-days: ${{ inputs.retention-days }}
+        if-no-files-found: error
+
+    - name: Upload x86
+      uses: actions/upload-artifact@v5
+      with:
+        name: ${{ inputs.name-prefix }}-x86
+        path: apk-out/x86/*.apk
+        compression-level: 0
+        retention-days: ${{ inputs.retention-days }}
+        if-no-files-found: error
+
+    - name: Upload universal
+      uses: actions/upload-artifact@v5
+      with:
+        name: ${{ inputs.name-prefix }}-universal
+        path: apk-out/universal/*.apk
+        compression-level: 0
+        retention-days: ${{ inputs.retention-days }}
+        if-no-files-found: warn

@@ -61,7 +61,7 @@ class AboutFragment : ToolbarFragment() {
                     onBatteryOptimizationClick = ::requestBatteryOptimization,
                     onProjectClick = {
                         requireContext().launchCustomTab(
-                            "https://4pda.to/forum/index.php?showtopic=1121122",
+                            "https://github.com/tytebyte-dev/AstraPlus",
                         )
                     },
                     onDocumentationClick = {

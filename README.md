@@ -11,7 +11,7 @@ Based on [NekoBox for Android](https://github.com/MatsuriDayo/NekoBoxForAndroid)
 
 ## Downloads
 
-[4pda](https://4pda.to/forum/index.php?showtopic=1121122)
+[4pda](https://github.com/tytebyte-dev/AstraPlus)
 
 ## Supported Protocols
 

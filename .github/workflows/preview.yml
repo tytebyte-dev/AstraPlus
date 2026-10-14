@@ -43,6 +43,7 @@ jobs:
       - name: Gradle build
         env:
           BUILD_PLUGIN: none
+          GITHUB_TOKEN: ${{ github.token }}
           LOCAL_PROPERTIES: ${{ secrets.LOCAL_PROPERTIES }}
         run: |
           echo "sdk.dir=${ANDROID_HOME}" > local.properties

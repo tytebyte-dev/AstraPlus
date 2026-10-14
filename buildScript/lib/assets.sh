@@ -26,14 +26,20 @@ fi
 
 cd "$STAGING_DIR"
 
+# Unauthenticated api.github.com requests from shared CI runners get rate-limited (HTTP 403).
+GH_AUTH=()
+if [ -n "${GITHUB_TOKEN:-${GH_TOKEN:-}}" ]; then
+  GH_AUTH=(-H "Authorization: Bearer ${GITHUB_TOKEN:-$GH_TOKEN}")
+fi
+
 get_latest_release() {
-  curl --fail --location --silent --show-error \
+  curl --fail --location --silent --show-error --retry 3 ${GH_AUTH[@]+"${GH_AUTH[@]}"} \
     "https://api.github.com/repos/$1/releases/latest" |
     jq -er '.tag_name'
 }
 
 get_latest_release_json() {
-  curl --fail --location --silent --show-error \
+  curl --fail --location --silent --show-error --retry 3 ${GH_AUTH[@]+"${GH_AUTH[@]}"} \
     "https://api.github.com/repos/$1/releases/latest"
 }
 
@@ -50,7 +56,7 @@ curl -fLSsO "https://github.com/soffchen/sing-geosite/releases/download/$VERSION
 xz -9 --lzma2=dict=4MiB geosite.db
 
 THRONE_RULESET_SHA="$(
-  curl --fail --location --silent --show-error \
+  curl --fail --location --silent --show-error --retry 3 ${GH_AUTH[@]+"${GH_AUTH[@]}"} \
     "https://api.github.com/repos/throneproj/routeprofiles/commits/rule-set" |
     jq -er '.sha'
 )"

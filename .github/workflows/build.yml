@@ -46,6 +46,7 @@ jobs:
       - name: Gradle build
         env:
           BUILD_PLUGIN: none
+          GITHUB_TOKEN: ${{ github.token }}
           LOCAL_PROPERTIES: ${{ secrets.LOCAL_PROPERTIES }}
           KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
           ALIAS_NAME: ${{ secrets.ALIAS_NAME }}

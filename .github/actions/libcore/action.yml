@@ -34,7 +34,10 @@ runs:
       id: key
       shell: bash
       run: |
-        echo "aar=libcore-v${{ inputs.cache-version }}-go${{ inputs.go-version }}-ndk${{ inputs.ndk-version }}-${{ hashFiles('buildScript/**', 'libcore/**', 'patches/**') }}" >> "$GITHUB_OUTPUT"
+        # git's blob hashes cover content and tolerate the dangling buildScript/nkmr symlink,
+        # which makes hashFiles() fail.
+        inputs_hash=$(git ls-files -s buildScript libcore patches | sha1sum | cut -d' ' -f1)
+        echo "aar=libcore-v${{ inputs.cache-version }}-go${{ inputs.go-version }}-ndk${{ inputs.ndk-version }}-$inputs_hash" >> "$GITHUB_OUTPUT"
         echo "parent=$(dirname "$GITHUB_WORKSPACE")" >> "$GITHUB_OUTPUT"
 
     - name: Restore libcore.aar

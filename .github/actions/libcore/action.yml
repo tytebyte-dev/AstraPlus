@@ -104,8 +104,18 @@ runs:
       with:
         targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
 
+    # setup-ndk's own "local-cache" stores symlinks as absolute paths into the runner tool cache,
+    # which leaves bin/clang dangling on the next run, so the tool cache dir is cached with
+    # actions/cache (tar keeps symlinks as they are) and setup-ndk finds the NDK there.
+    - name: Cache Android NDK
+      if: inputs.restore-only != 'true' && steps.aar.outputs.cache-hit != 'true'
+      uses: actions/cache@v5
+      with:
+        path: ${{ runner.tool_cache }}/ndk
+        key: libcore-ndk-v${{ inputs.cache-version }}-${{ runner.os }}-${{ inputs.ndk-version }}
+
     # libcronet.a (sagernet/cronet-go) cannot be linked by lld from NDK 27.3:
-    # "unknown relocation (315)". setup-ndk keeps its own cache of the downloaded NDK.
+    # "unknown relocation (315)".
     - name: Setup Android NDK
       if: inputs.restore-only != 'true' && steps.aar.outputs.cache-hit != 'true'
       id: ndk
@@ -113,7 +123,6 @@ runs:
       with:
         ndk-version: ${{ inputs.ndk-version }}
         add-to-path: false
-        local-cache: true # reuse the downloaded NDK between runs
 
     - name: Use the NDK for libcore
       if: inputs.restore-only != 'true' && steps.aar.outputs.cache-hit != 'true'
@@ -122,6 +131,7 @@ runs:
         echo "ANDROID_NDK_HOME=${{ steps.ndk.outputs.ndk-path }}" >> "$GITHUB_ENV"
         echo "NDK=${{ steps.ndk.outputs.ndk-path }}" >> "$GITHUB_ENV"
         grep Pkg.Revision "${{ steps.ndk.outputs.ndk-path }}/source.properties"
+        test -x "${{ steps.ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
 
     - name: Native build
       if: inputs.restore-only != 'true' && steps.aar.outputs.cache-hit != 'true'

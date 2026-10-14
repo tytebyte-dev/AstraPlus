@@ -7,6 +7,7 @@ enum class ProfileToolbarActionId(val value: String) {
     CLEAR_TEST_RESULTS("clear_test_results"),
     DELETE_MENU("delete_menu"),
     REMOVE_DUPLICATES("remove_duplicates"),
+    BATCH_RENAME("batch_rename"),
     DELETE_UNAVAILABLE("delete_unavailable"),
     REMOVE_INSECURE("remove_insecure"),
     ICMP_PING("icmp_ping"),

@@ -2112,4 +2112,7 @@
     <string name="default_subscriptions_progress">%1$d of %2$d</string>
     <string name="default_subscriptions_skip_hint">Stuck on one list? Tap “Skip” and carry on — subscriptions can be updated later.</string>
     <string name="default_subscriptions_skip">Skip</string>
+    <string name="batch_rename">Batch rename</string>
+    <string name="batch_rename_confirm">Rename all servers in this group to “Server 1”, “Server 2”, “Server 3”…? Servers already named “Server N” keep their number.</string>
+    <string name="batch_rename_progress_title">Renaming servers</string>
 </resources>

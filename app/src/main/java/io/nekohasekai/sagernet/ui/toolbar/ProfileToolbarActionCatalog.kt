@@ -26,6 +26,7 @@ object ProfileToolbarActionCatalog {
         action(ProfileToolbarActionId.CLEAR_TEST_RESULTS, R.string.connection_test_clear_results, R.drawable.ic_baseline_refresh_24),
         submenu(ProfileToolbarActionId.DELETE_MENU, R.string.delete, R.drawable.baseline_delete_sweep_24),
         action(ProfileToolbarActionId.REMOVE_DUPLICATES, R.string.remove_duplicate, R.drawable.ic_baseline_content_copy_24),
+        action(ProfileToolbarActionId.BATCH_RENAME, R.string.batch_rename, R.drawable.ic_image_edit),
         action(ProfileToolbarActionId.DELETE_UNAVAILABLE, R.string.selection_unavailable, R.drawable.baseline_delete_sweep_24),
         action(ProfileToolbarActionId.REMOVE_INSECURE, R.string.selection_insecure, R.drawable.ic_baseline_no_encryption_gmailerrorred_24),
         action(ProfileToolbarActionId.ICMP_PING, R.string.connection_test_icmp_ping, R.drawable.ic_baseline_network_ping_24),

@@ -38,7 +38,7 @@ Based on [NekoBox for Android](https://github.com/MatsuriDayo/NekoBoxForAndroid)
 * MasterDnsVPN
 
 <details>
-<summary>XHTTP Extra TLS Configuration Example</summary>
+<summary>XHTTP Extra TLS Configuration Example.</summary>
 
 <pre><code class="language-json">
 {

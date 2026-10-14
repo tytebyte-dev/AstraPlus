@@ -104,6 +104,7 @@ object GroupManager {
     }
 
     suspend fun updateGroup(group: ProxyGroup) {
+        if (group.type == GroupType.ALL && AppData.groups.getById(group.id)?.type != GroupType.ALL) return
         val previous = AppData.groups.getById(group.id)
         val previousSubscription = previous?.subscription
         val updatedSubscription = group.subscription
@@ -123,6 +124,7 @@ object GroupManager {
     }
 
     suspend fun deleteGroup(groupId: Long) {
+        if (AppData.groups.getById(groupId)?.type == GroupType.ALL) return
         GroupUpdater.cancelUpdate(groupId)
         AppData.transactions.run {
             AppData.groups.deleteById(groupId)
@@ -134,7 +136,9 @@ object GroupManager {
         SubscriptionUpdater.reconfigureUpdater()
     }
 
-    suspend fun deleteGroup(group: List<ProxyGroup>) {
+    suspend fun deleteGroup(groups: List<ProxyGroup>) {
+        val group = groups.filter { it.type != GroupType.ALL }
+        if (group.isEmpty()) return
         GroupUpdater.cancelUpdates(group.map { it.id })
         AppData.transactions.run {
             AppData.groups.deleteGroup(group)
@@ -162,7 +166,9 @@ object GroupManager {
 
     fun canDelete(groupId: Long): Boolean {
         if (groupId <= 0L) return false
-        return AppData.groups.allGroups().size > 1
+        val all = AppData.groups.allGroups()
+        if (all.firstOrNull { it.id == groupId }?.type == GroupType.ALL) return false
+        return all.count { it.type != GroupType.ALL } > 1
     }
 
 }

@@ -95,6 +95,7 @@ class SagerNet : Application(),
                     Logs.w(getString(R.string.tproxy_cleanup_failed))
                 }
                 PackageCache.register()
+                if (isMainProcess) io.nekohasekai.sagernet.database.AutoGroups.start()
                 cleanWebview()
             }
         }

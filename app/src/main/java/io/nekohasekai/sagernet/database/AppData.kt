@@ -8,6 +8,9 @@ interface ProfileDataSource {
     fun getIdsByGroup(groupId: Long): List<Long>
     fun getByGroup(groupId: Long): List<ProxyEntity>
     fun getEntities(profileIds: List<Long>): List<ProxyEntity>
+    fun getAutoByGroup(groupId: Long): List<ProxyEntity>
+    fun getAllManual(): List<ProxyEntity>
+    fun getAllAuto(): List<ProxyEntity>
     fun countByGroup(groupId: Long): Long
     fun nextOrder(groupId: Long): Long?
     fun getById(profileId: Long): ProxyEntity?
@@ -106,6 +109,9 @@ private object RoomProfileDataSource : ProfileDataSource {
     override fun getIdsByGroup(groupId: Long) = dao.getIdsByGroup(groupId)
     override fun getByGroup(groupId: Long) = dao.getByGroup(groupId)
     override fun getEntities(profileIds: List<Long>) = dao.getEntities(profileIds)
+    override fun getAutoByGroup(groupId: Long) = dao.getAutoByGroup(groupId)
+    override fun getAllManual() = dao.getAllManual()
+    override fun getAllAuto() = dao.getAllAuto()
     override fun countByGroup(groupId: Long) = dao.countByGroup(groupId)
     override fun nextOrder(groupId: Long) = dao.nextOrder(groupId)
     override fun getById(profileId: Long) = dao.getById(profileId)

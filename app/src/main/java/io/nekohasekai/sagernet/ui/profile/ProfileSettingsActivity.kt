@@ -138,7 +138,7 @@ abstract class ProfileSettingsActivity<T : AbstractBean> :
         runOnDefaultDispatcher {
             val bean = when {
                 editingId == 0L -> createEntity().applyDefaultValues()
-                proxyEntity == null -> {
+                proxyEntity == null || proxyEntity!!.countrySource == io.nekohasekai.sagernet.AUTO_COUNTRY_SOURCE -> {
                     onMainDispatcher { finish() }
                     return@runOnDefaultDispatcher
                 }

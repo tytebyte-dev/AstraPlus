@@ -1,5 +1,7 @@
 package io.nekohasekai.sagernet.ui
 
+import io.nekohasekai.sagernet.AUTO_COUNTRY_SOURCE
+import io.nekohasekai.sagernet.database.AutoGroups
 import android.app.Activity
 import android.annotation.SuppressLint
 import android.content.res.ColorStateList
@@ -1781,7 +1783,9 @@ class ConfigurationFragment @JvmOverloads constructor(
     private fun deleteSelectedProfiles() = selectedProfiles { profiles ->
         val runningId = DataStore.currentProfile.takeIf { DataStore.serviceState.started }
         val skipped = profiles.count { it.id == runningId }
-        val removable = profiles.filterNot { it.id == runningId }
+        val removable = profiles.filterNot {
+            it.id == runningId || it.countrySource == AUTO_COUNTRY_SOURCE
+        }
         val delete = {
             exitProfileSelectionMode()
             if (removable.isNotEmpty()) {
@@ -1973,7 +1977,13 @@ class ConfigurationFragment @JvmOverloads constructor(
                 return
             }
 
-            val count = SagerDatabase.proxyDao.countByGroup(group.id).toString()
+            val count = (
+                if (group.type == GroupType.ALL) {
+                    SagerDatabase.proxyDao.getAllManual().size.toLong()
+                } else {
+                    SagerDatabase.proxyDao.countByGroup(group.id)
+                }
+                ).toString()
             val title = group.displayName()
             tab.text = SpannableStringBuilder(title)
                 .append(
@@ -2078,7 +2088,7 @@ class ConfigurationFragment @JvmOverloads constructor(
 
                 val selectedGroupProfiles = if (set && prefetchInitialProfiles) {
                     newGroupList.getOrNull(selectedGroupIndex)?.let { group ->
-                        group.id to SagerDatabase.proxyDao.getByGroup(group.id)
+                        group.id to AutoGroups.loadGroupProfiles(group)
                     }
                 } else {
                     null
@@ -3233,7 +3243,9 @@ class ConfigurationFragment @JvmOverloads constructor(
                 }
             }
 
-            private fun persistProfileOrder(profiles: List<ProxyEntity>) {
+            private fun persistProfileOrder(allProfiles: List<ProxyEntity>) {
+                if (proxyGroup.type == GroupType.ALL) return
+                val profiles = allProfiles.filter { it.countrySource != AUTO_COUNTRY_SOURCE }
                 val changed = profiles.mapIndexedNotNull { index, profile ->
                     val newOrder = (index + 1).toLong()
                     if (profile.userOrder == newOrder) {
@@ -3291,7 +3303,9 @@ class ConfigurationFragment @JvmOverloads constructor(
                 reason: ProfileReloadReason = ProfileReloadReason.General,
                 prefetchedProfiles: List<ProxyEntity>? = null,
             ) {
-                var newProfiles = prefetchedProfiles ?: SagerDatabase.proxyDao.getByGroup(proxyGroup.id)
+                val loadedProfiles = prefetchedProfiles ?: AutoGroups.loadGroupProfiles(proxyGroup)
+                val autoProfiles = loadedProfiles.filter { it.countrySource == AUTO_COUNTRY_SOURCE }
+                var newProfiles = loadedProfiles.filter { it.countrySource != AUTO_COUNTRY_SOURCE }
                 ProfileCountryResolver.backfillLiteralAddresses(newProfiles).takeIf {
                     it.isNotEmpty()
                 }?.let(SagerDatabase.proxyDao::updateProxy)
@@ -3340,6 +3354,10 @@ class ConfigurationFragment @JvmOverloads constructor(
                         persistProfileOrder(newProfiles)
                     }
                 }
+
+                newProfiles = autoProfiles.filterNot {
+                    configurationFragment?.isPendingBatchDelete(it.id) == true
+                } + newProfiles
 
                 configurationList.clear()
                 configurationList.putAll(newProfiles.associateBy { it.id })
@@ -3632,7 +3650,8 @@ class ConfigurationFragment @JvmOverloads constructor(
                     }
                 }
                 val countryCode = ProfileCountryResolver.effectiveCountryCode(entity)
-                val countryVisible = DataStore.profileCountryIndicator &&
+                val isAutoEntry = entity.countrySource == AUTO_COUNTRY_SOURCE
+                val countryVisible = (isAutoEntry || DataStore.profileCountryIndicator) &&
                     CountryFlagRenderer.loadSvg(context, countryCode) != null
                 val batchSelection = parent.isProfileSelectionMode
                 val selectOrChain = select || entity.type == ProxyEntity.TYPE_CHAIN
@@ -3641,7 +3660,7 @@ class ConfigurationFragment @JvmOverloads constructor(
                     notificationSwitchPopup = activity is SwitchActivity,
                     batchSelection = batchSelection,
                 )
-                val showShare = !selectOrChain && !batchSelection && entity.nekoBean == null
+                val showShare = !isAutoEntry && !selectOrChain && !batchSelection && entity.nekoBean == null
                 val showTrafficInOwnField = showTraffic && showTrafficSeparately
                 presentation = ProfileCardModel(
                     entity = entity,
@@ -3665,12 +3684,12 @@ class ConfigurationFragment @JvmOverloads constructor(
                     statusVisible = !double || entity.status > 0,
                     batchSelection = batchSelection,
                     batchSelected = parent.isProfileSelected(entity.id),
-                    showEdit = !double && !select && !batchSelection,
+                    showEdit = !isAutoEntry && !double && !select && !batchSelection,
                     editEnabled = !isCurrentRunningProfile,
                     showUrlTest = !double && showUrlTest,
                     urlTestEnabled = !UrlTest.isUnsupportedProfile(entity),
                     showShare = !double && showShare,
-                    showDelete = !double && !select && !batchSelection,
+                    showDelete = !isAutoEntry && !double && !select && !batchSelection,
                     showOverflow = double && !batchSelection,
                     minimumHeightDp = if (double) {
                         doubleProfileMinimumHeightDp(

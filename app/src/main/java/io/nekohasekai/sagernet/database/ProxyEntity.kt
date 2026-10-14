@@ -775,19 +775,28 @@ data class ProxyEntity(
         @Query("SELECT id FROM proxy_entities ORDER BY id")
         fun getAllIds(): List<Long>
 
-        @Query("SELECT id FROM proxy_entities WHERE groupId = :groupId ORDER BY userOrder")
+        @Query("SELECT id FROM proxy_entities WHERE groupId = :groupId AND countrySource != 99 ORDER BY userOrder")
         fun getIdsByGroup(groupId: Long): List<Long>
 
-        @Query("SELECT * FROM proxy_entities WHERE groupId = :groupId ORDER BY userOrder")
+        @Query("SELECT * FROM proxy_entities WHERE groupId = :groupId AND countrySource != 99 ORDER BY userOrder")
         fun getByGroup(groupId: Long): List<ProxyEntity>
+
+        @Query("SELECT * FROM proxy_entities WHERE groupId = :groupId AND countrySource = 99")
+        fun getAutoByGroup(groupId: Long): List<ProxyEntity>
+
+        @Query("SELECT * FROM proxy_entities WHERE countrySource != 99 ORDER BY groupId, userOrder")
+        fun getAllManual(): List<ProxyEntity>
+
+        @Query("SELECT * FROM proxy_entities WHERE countrySource = 99")
+        fun getAllAuto(): List<ProxyEntity>
 
         @Query("SELECT * FROM proxy_entities WHERE id in (:proxyIds)")
         fun getEntities(proxyIds: List<Long>): List<ProxyEntity>
 
-        @Query("SELECT COUNT(*) FROM proxy_entities WHERE groupId = :groupId")
+        @Query("SELECT COUNT(*) FROM proxy_entities WHERE groupId = :groupId AND countrySource != 99")
         fun countByGroup(groupId: Long): Long
 
-        @Query("SELECT  MAX(userOrder) + 1 FROM proxy_entities WHERE groupId = :groupId")
+        @Query("SELECT  MAX(userOrder) + 1 FROM proxy_entities WHERE groupId = :groupId AND countrySource != 99")
         fun nextOrder(groupId: Long): Long?
 
         @Query("SELECT * FROM proxy_entities WHERE id = :proxyId")

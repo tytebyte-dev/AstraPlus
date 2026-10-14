@@ -156,18 +156,6 @@ object DefaultSubscriptions {
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | White List 5",
-            listOf(
-                "https://raw.githubusercontent.com/RKPchannel/RKP_bypass_configs/main/whitelist.txt",
-            ),
-        ),
-        Entry(
-            "🌀 CYBERPORTAL | Black List 6",
-            listOf(
-                "https://hub.mos.ru/rkp/sub-roskompozor",
-            ),
-        ),
-        Entry(
             "🌀 CYBERPORTAL | Black List · VLESS",
             listOf(
                 "https://raw.githubusercontent.com/NullCoreDeveloper/cyberportal-mirror/master/cp-002.txt",

@@ -9,7 +9,7 @@ class DefaultSubscriptionsTest {
     @Test
     fun bundledListHasUniqueNamedEntriesWithHttpsMirrors() {
         val entries = DefaultSubscriptions.entries
-        assertEquals(27, entries.size)
+        assertEquals(25, entries.size)
         assertEquals(entries.size, entries.map { it.name }.toSet().size)
         assertTrue(entries.all { it.name.isNotBlank() && it.mirrors.isNotEmpty() })
         assertTrue(entries.all { entry -> entry.mirrors.all { it.startsWith("https://") && '|' !in it } })

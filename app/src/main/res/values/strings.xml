@@ -2107,4 +2107,9 @@
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="dashboard_sort_current">Sort: %1$s</string>
     <string name="dashboard_test_failure_detail">Test failed: %1$s</string>
+    <string name="default_subscriptions_title">Loading subscriptions</string>
+    <string name="default_subscriptions_message">Please wait while the built-in lists are downloaded.</string>
+    <string name="default_subscriptions_progress">%1$d of %2$d</string>
+    <string name="default_subscriptions_skip_hint">Stuck on one list? Tap “Skip” and carry on — subscriptions can be updated later.</string>
+    <string name="default_subscriptions_skip">Skip</string>
 </resources>

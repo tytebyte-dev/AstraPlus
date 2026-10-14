@@ -2073,4 +2073,9 @@
     <string name="navigation_drawer_open">Открыть меню навигации</string>
     <string name="dashboard_sort_current">Сортировка: %1$s</string>
     <string name="dashboard_test_failure_detail">Ошибка проверки: %1$s</string>
+    <string name="default_subscriptions_title">Загружаем подписки</string>
+    <string name="default_subscriptions_message">Подождите, скачиваются встроенные списки.</string>
+    <string name="default_subscriptions_progress">%1$d из %2$d</string>
+    <string name="default_subscriptions_skip_hint">Завис на одном списке? Нажмите «Пропустить» и продолжайте — подписки можно обновить позже.</string>
+    <string name="default_subscriptions_skip">Пропустить</string>
 </resources>

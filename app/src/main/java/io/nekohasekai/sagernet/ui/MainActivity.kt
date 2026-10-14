@@ -83,6 +83,7 @@ import io.nekohasekai.sagernet.ui.compose.DrawerOverlayComposeView
 import io.nekohasekai.sagernet.ui.compose.showBlockingProgressDialog
 import io.nekohasekai.sagernet.ui.compose.showComposeItemDialog
 import io.nekohasekai.sagernet.ui.compose.showComposeMessageDialog
+import io.nekohasekai.sagernet.ui.compose.showDefaultSubscriptionsDialog
 import io.nekohasekai.sagernet.ui.compose.showComposeDynamicMessageDialog
 import io.nekohasekai.sagernet.utils.PackageCache
 import io.nekohasekai.sagernet.utils.RoutingRulesService
@@ -327,6 +328,7 @@ class MainActivity :
                 DefaultSubscriptions.seedOnce()
             }
         }
+        showDefaultSubscriptionsDialog()
 
         if (!DataStore.proxyAppsFirstSetup) {
             lifecycleScope.launch {

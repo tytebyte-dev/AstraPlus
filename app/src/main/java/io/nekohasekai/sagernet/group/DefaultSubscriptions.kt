@@ -1,5 +1,6 @@
 package io.nekohasekai.sagernet.group
 
+import io.nekohasekai.sagernet.GroupOrder
 import io.nekohasekai.sagernet.GroupType
 import io.nekohasekai.sagernet.database.AppData
 import io.nekohasekai.sagernet.database.DataStore
@@ -9,7 +10,12 @@ import io.nekohasekai.sagernet.database.SubscriptionBean
 import io.nekohasekai.sagernet.ktx.Logs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -257,22 +263,59 @@ object DefaultSubscriptions {
         ),
     )
 
+    /** Progress of the first-launch download, shown by the "loading subscriptions" dialog. */
+    data class Progress(val running: Boolean = false, val done: Int = 0, val total: Int = 0)
+
+    private val _progress = MutableStateFlow(Progress())
+    val progress: StateFlow<Progress> = _progress.asStateFlow()
+
+    private val seedingIds: MutableSet<Long> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+    private var seedJob: Job? = null
+
+    /** Groups being fetched by the first-launch download; their results are reported by the dialog only. */
+    fun isSeeding(groupId: Long): Boolean = groupId in seedingIds
+
+    /** Stops waiting for the remaining lists; they are fetched later by the regular auto-update. */
+    fun skip() {
+        val job = seedJob ?: return
+        val ids = seedingIds.toList()
+        scope.launch {
+            job.cancel()
+            runCatching { GroupUpdater.cancelUpdates(ids) }.onFailure(Logs::w)
+        }
+    }
+
     /** Creates the missing groups once and starts fetching them. Safe to call repeatedly. */
     fun seedOnce() {
-        if (DataStore.defaultSubscriptionsSeeded) return
-        scope.launch {
+        if (DataStore.defaultSubscriptionsSeeded || seedJob != null) return
+        _progress.value = Progress(running = true, done = 0, total = entries.size)
+        val job = scope.launch {
             val created = runCatching { createMissingGroups() }
                 .onFailure(Logs::w)
                 .getOrNull() ?: return@launch
             DataStore.defaultSubscriptionsSeeded = true
+            seedingIds += created.map { it.id }
+            _progress.update { it.copy(done = entries.size - created.size) }
             val permits = Semaphore(UPDATE_PARALLELISM)
             created.forEach { group ->
                 launch {
-                    permits.withPermit {
-                        runCatching { GroupUpdater.executeUpdate(group, true) }.onFailure(Logs::w)
+                    try {
+                        permits.withPermit {
+                            // Not a user-initiated update: no "Differences" dialog per list.
+                            runCatching { GroupUpdater.executeUpdate(group, false) }.onFailure(Logs::w)
+                        }
+                    } finally {
+                        seedingIds -= group.id
+                        _progress.update { it.copy(done = it.done + 1) }
                     }
                 }
             }
+        }
+        seedJob = job
+        // A parent job completes only after all of its children, so this fires when every list is done.
+        job.invokeOnCompletion {
+            seedingIds.clear()
+            _progress.value = Progress()
         }
     }
 
@@ -286,10 +329,12 @@ object DefaultSubscriptions {
             if (link in existing) continue
             val group = ProxyGroup(type = GroupType.SUBSCRIPTION).apply {
                 name = entry.name
+                order = GroupOrder.BY_DELAY
                 subscription = SubscriptionBean().apply {
                     this.link = link
                     autoUpdate = true
                     autoUpdateDelay = AUTO_UPDATE_MINUTES
+                    deduplication = true
                 }
             }
             created += GroupManager.createGroup(group)

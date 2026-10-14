@@ -56,6 +56,7 @@ import io.nekohasekai.sagernet.databinding.LayoutMainBinding
 import io.nekohasekai.sagernet.fmt.AbstractBean
 import io.nekohasekai.sagernet.fmt.KryoConverters
 import io.nekohasekai.sagernet.fmt.PluginEntry
+import io.nekohasekai.sagernet.group.DefaultSubscriptions
 import io.nekohasekai.sagernet.group.GroupInterfaceAdapter
 import io.nekohasekai.sagernet.group.GroupUpdater
 import io.nekohasekai.sagernet.ktx.AmneziaApiKeyUnsupportedException
@@ -316,6 +317,15 @@ class MainActivity :
                 title = BuildConfig.PRE_VERSION_NAME,
                 message = getText(R.string.preview_version_hint),
             )
+        }
+
+        if (!DataStore.defaultSubscriptionsSeeded) {
+            // Only a fresh install gets the bundled subscriptions; existing installs just skip them.
+            if (DataStore.proxyAppsFirstSetup) {
+                DataStore.defaultSubscriptionsSeeded = true
+            } else {
+                DefaultSubscriptions.seedOnce()
+            }
         }
 
         if (!DataStore.proxyAppsFirstSetup) {

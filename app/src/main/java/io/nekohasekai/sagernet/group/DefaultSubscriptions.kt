@@ -35,7 +35,7 @@ object DefaultSubscriptions {
 
     val entries: List<Entry> = listOf(
         Entry(
-            "🌀 CYBERPORTAL | White List · LTE",
+            "White List · LTE",
             listOf(
                 "https://cdn.jsdelivr.net/gh/hussaroff/lte-universal-checked@main/whitelist.txt",
                 "https://fastly.jsdelivr.net/gh/hussaroff/lte-universal-checked@main/whitelist.txt",
@@ -43,13 +43,13 @@ object DefaultSubscriptions {
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | Проверенные",
+            "Проверенные",
             listOf(
                 "https://sub.vlessfo.ru/vlessforu/working_configs.txt",
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | White List",
+            "White List",
             listOf(
                 "https://hub.mos.ru/zieng2/wl/raw/main/list_universal.txt",
                 "https://gitverse.ru/api/repos/zieng2/wl/raw/branch/master/list_universal.txt",
@@ -59,7 +59,7 @@ object DefaultSubscriptions {
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | White List 2",
+            "White List 2",
             listOf(
                 "https://gitlab.com/igareck/vpn-configs-for-russia/raw/main/Vless-Reality-White-Lists-Rus-Mobile.txt",
                 "https://codeberg.org/igareck/vpn-configs-for-russia/raw/branch/main/Vless-Reality-White-Lists-Rus-Mobile.txt",
@@ -68,7 +68,7 @@ object DefaultSubscriptions {
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | White List · LTE 2",
+            "White List · LTE 2",
             listOf(
                 "https://raw.githubusercontent.com/Maskkost93/kizyak-vpn-4.0/refs/heads/main/kizyakbeta7.txt",
                 "https://raw.githubusercontent.com/Maskkost93/kizyak-vpn-4.0/main/kizyakbeta7.txt",
@@ -77,7 +77,7 @@ object DefaultSubscriptions {
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | Black List",
+            "Black List",
             listOf(
                 "https://raw.githubusercontent.com/Maskkost93/kizyak-vpn-4.0/refs/heads/main/kizyakbeta6BL.txt",
                 "https://raw.githubusercontent.com/Maskkost93/kizyak-vpn-4.0/main/kizyakbeta6BL.txt",
@@ -86,7 +86,7 @@ object DefaultSubscriptions {
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | White List 3",
+            "White List 3",
             listOf(
                 "https://etoneya.su/whitelist",
                 "https://etoneya.best/whitelist",
@@ -98,7 +98,7 @@ object DefaultSubscriptions {
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | Black List 2",
+            "Black List 2",
             listOf(
                 "https://etoneya.su/other",
                 "https://etoneya.best/other",
@@ -110,35 +110,35 @@ object DefaultSubscriptions {
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | White List 4",
+            "White List 4",
             listOf(
                 "https://raw.githubusercontent.com/NullCoreDeveloper/cyberportal-mirror/master/cp-035.txt",
                 "https://warp-gen.cyb-portal.org/CP-035",
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | Black List 3",
+            "Black List 3",
             listOf(
                 "https://raw.githubusercontent.com/NullCoreDeveloper/cyberportal-mirror/master/cp-001.txt",
                 "https://warp-gen.cyb-portal.org/CP-001",
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | White List · CIDR",
+            "White List · CIDR",
             listOf(
                 "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/main/WHITE-CIDR-RU-all.txt",
                 "https://gitlab.com/igareck/vpn-configs-for-russia/raw/main/WHITE-CIDR-RU-all.txt",
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | Black List 4",
+            "Black List 4",
             listOf(
                 "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/main/BLACK_VLESS_RUS.txt",
                 "https://gitlab.com/igareck/vpn-configs-for-russia/raw/main/BLACK_VLESS_RUS.txt",
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | Black List 5",
+            "Black List 5",
             listOf(
                 "https://gitlab.com/igareck/vpn-configs-for-russia/raw/main/BLACK_VLESS_RUS_mobile.txt",
                 "https://codeberg.org/igareck/vpn-configs-for-russia/raw/branch/main/BLACK_VLESS_RUS_mobile.txt",
@@ -147,7 +147,7 @@ object DefaultSubscriptions {
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | White List · LTE 3",
+            "White List · LTE 3",
             listOf(
                 "https://raw.githubusercontent.com/Maskkost93/kizyak-vpn-4.0/refs/heads/main/kizyakbeta6.txt",
                 "https://raw.githubusercontent.com/Maskkost93/kizyak-vpn-4.0/main/kizyakbeta6.txt",
@@ -156,35 +156,35 @@ object DefaultSubscriptions {
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | Black List · VLESS",
+            "Black List · VLESS",
             listOf(
                 "https://raw.githubusercontent.com/NullCoreDeveloper/cyberportal-mirror/master/cp-002.txt",
                 "https://warp-gen.cyb-portal.org/CP-002",
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | White List · CIDR 2",
+            "White List · CIDR 2",
             listOf(
                 "https://raw.githubusercontent.com/NullCoreDeveloper/cyberportal-mirror/master/cp-006.txt",
                 "https://warp-gen.cyb-portal.org/CP-006",
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | White List · SNI",
+            "White List · SNI",
             listOf(
                 "https://raw.githubusercontent.com/NullCoreDeveloper/cyberportal-mirror/master/cp-008.txt",
                 "https://warp-gen.cyb-portal.org/CP-008",
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | White List · Keys",
+            "White List · Keys",
             listOf(
                 "https://raw.githubusercontent.com/NullCoreDeveloper/cyberportal-mirror/master/cp-042.txt",
                 "https://warp-gen.cyb-portal.org/CP-042",
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | White List 6",
+            "White List 6",
             listOf(
                 "https://raw.githubusercontent.com/AirLinkVPN1/AirLinkVPN/refs/heads/main/rkn_white_list",
                 "https://raw.githubusercontent.com/AirLinkVPN1/AirLinkVPN/main/rkn_white_list",
@@ -193,19 +193,19 @@ object DefaultSubscriptions {
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | Black List 7",
+            "Black List 7",
             listOf(
                 "https://raw.githubusercontent.com/flaafix/AetrisVPN/main/AetrisVPN.txt",
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | Black List 8",
+            "Black List 8",
             listOf(
                 "https://raw.githubusercontent.com/hiztin/VLESS-PO-GRIBI/main/deploy/subscriptions/25.txt",
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | Black List · Gemini",
+            "Black List · Gemini",
             listOf(
                 "https://etoneya.su/gemini",
                 "https://etoneya.best/gemini",
@@ -217,7 +217,7 @@ object DefaultSubscriptions {
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | Black List · YouTube",
+            "Black List · YouTube",
             listOf(
                 "https://etoneya.su/youtube",
                 "https://etoneya.best/youtube",
@@ -229,7 +229,7 @@ object DefaultSubscriptions {
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | Black List · YouTube Music",
+            "Black List · YouTube Music",
             listOf(
                 "https://etoneya.su/ytm",
                 "https://etoneya.best/ytm",
@@ -241,7 +241,7 @@ object DefaultSubscriptions {
             ),
         ),
         Entry(
-            "🌀 CYBERPORTAL | Black List 9",
+            "Black List 9",
             listOf(
                 "https://raw.githubusercontent.com/whoahaow/rjsxrd/refs/heads/main/githubmirror/bypass/bypass-all.txt",
                 "https://raw.githubusercontent.com/whoahaow/rjsxrd/main/githubmirror/bypass/bypass-all.txt",
@@ -271,6 +271,19 @@ object DefaultSubscriptions {
             job.cancel()
             runCatching { GroupUpdater.cancelUpdates(ids) }.onFailure(Logs::w)
         }
+    }
+
+    private const val LEGACY_NAME_PREFIX = "🌀 CYBERPORTAL | "
+
+    /** Strips the old "CYBERPORTAL |" prefix from names of already created groups. */
+    suspend fun stripLegacyNamePrefix() {
+        AppData.groups.allGroups()
+            .filter { it.name?.startsWith(LEGACY_NAME_PREFIX) == true }
+            .forEach {
+                it.name = it.name!!.removePrefix(LEGACY_NAME_PREFIX).trim()
+                AppData.groups.updateGroup(it)
+                GroupManager.postUpdate(it)
+            }
     }
 
     /** Creates the missing groups once and starts fetching them. Safe to call repeatedly. */

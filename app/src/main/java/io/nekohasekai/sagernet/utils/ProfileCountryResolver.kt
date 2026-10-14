@@ -51,7 +51,13 @@ object ProfileCountryResolver {
         return true
     }
 
-    internal fun canReplace(currentSource: Int, candidateSource: Int): Boolean = when (candidateSource) {
+    internal fun canReplace(currentSource: Int, candidateSource: Int): Boolean {
+        // Generated "Auto" entries keep their marker and flag forever.
+        if (currentSource == io.nekohasekai.sagernet.AUTO_COUNTRY_SOURCE) return false
+        return canReplaceRegular(currentSource, candidateSource)
+    }
+
+    private fun canReplaceRegular(currentSource: Int, candidateSource: Int): Boolean = when (candidateSource) {
         SOURCE_NAME -> currentSource == SOURCE_NONE
         SOURCE_ENDPOINT -> currentSource != SOURCE_OUTBOUND
         SOURCE_OUTBOUND -> true

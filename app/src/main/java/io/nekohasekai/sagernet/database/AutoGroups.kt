@@ -58,6 +58,7 @@ object AutoGroups {
             override suspend fun groupProfileCountChanged(groupId: Long) = requestSync()
         })
         scope.launch {
+            runCatching { io.nekohasekai.sagernet.group.DefaultSubscriptions.stripLegacyNamePrefix() }
             for (ignored in trigger) {
                 delay(1500)
                 trigger.tryReceive()
@@ -89,6 +90,7 @@ object AutoGroups {
     }
 
     suspend fun sync() = mutex.withLock {
+        repairMarkers()
         val groups = AppData.groups.allGroups()
         val regular = groups.filter { it.type != GroupType.ALL }
         val changedGroups = linkedSetOf<Long>()
@@ -106,55 +108,50 @@ object AutoGroups {
             if (changed) changedGroups += group.id
         }
 
-        val filled = regular.filter { AppData.profiles.countByGroup(it.id) > 0 }
-        val existingAll = groups.firstOrNull { it.type == GroupType.ALL }
-        val allGroup: ProxyGroup? = if (filled.size >= 2) {
-            val wantedOrder = (regular.minOfOrNull { it.userOrder } ?: 1L) - 1
-            if (existingAll == null) {
-                val created = ProxyGroup(type = GroupType.ALL, order = GroupOrder.ORIGIN)
-                created.userOrder = wantedOrder
-                created.id = AppData.groups.createGroup(created)
-                GroupManager.iterator { groupAdd(created) }
-                created
-            } else {
-                if (existingAll.userOrder != wantedOrder) {
-                    existingAll.userOrder = wantedOrder
-                    AppData.groups.updateGroup(existingAll)
-                    GroupManager.iterator { groupUpdated(existingAll) }
-                }
-                existingAll
-            }
-        } else {
-            null
-        }
-        if (allGroup != null) {
-            val changed = ensureAuto(
-                existing = AppData.profiles.getAutoByGroup(allGroup.id),
-                wanted = true,
-                groupId = allGroup.id,
-                type = ProxySetBean.TYPE_ALL,
-                targetGroupId = 0L,
-                title = app.getString(R.string.auto_server_name, allGroup.displayName()),
-            )
-            if (changed) changedGroups += allGroup.id
-        } else if (existingAll != null) {
+        // The aggregate "All servers" group was removed: clean up leftovers from earlier builds.
+        groups.filter { it.type == GroupType.ALL }.forEach { stale ->
             AppData.transactions.run {
-                AppData.groups.deleteById(existingAll.id)
-                AppData.profiles.deleteByGroup(existingAll.id)
+                AppData.groups.deleteById(stale.id)
+                AppData.profiles.deleteByGroup(stale.id)
             }
-            if (DataStore.selectedGroup == existingAll.id) {
+            if (DataStore.selectedGroup == stale.id) {
                 DataStore.selectedGroup = regular.firstOrNull()?.id ?: 0L
             }
-            GroupManager.iterator { groupRemoved(existingAll.id) }
-            if (regular.isEmpty()) {
-                val group = ProxyGroup(ungrouped = true)
-                group.id = AppData.groups.createGroup(group)
-                DataStore.selectedGroup = group.id
-                GroupManager.iterator { groupAdd(group) }
-            }
+            GroupManager.iterator { groupRemoved(stale.id) }
+        }
+        if (regular.isEmpty()) {
+            val group = ProxyGroup(ungrouped = true)
+            group.id = AppData.groups.createGroup(group)
+            DataStore.selectedGroup = group.id
+            GroupManager.iterator { groupAdd(group) }
         }
 
         for (id in changedGroups) GroupManager.postReload(id)
+    }
+
+    private var repaired = false
+
+    /** Auto entries whose marker was overwritten by older builds are re-marked (or dropped if duplicated). */
+    private fun repairMarkers() {
+        if (repaired) return
+        repaired = true
+        val broken = AppData.profiles.getAll().filter {
+            it.countrySource != AUTO_COUNTRY_SOURCE &&
+                it.type == ProxyEntity.TYPE_PROXY_SET &&
+                (it.requireBean() as? ProxySetBean)?.auto == true
+        }
+        if (broken.isEmpty()) return
+        val have = AppData.profiles.getAllAuto().map { it.groupId }.toHashSet()
+        for (entity in broken) {
+            if (entity.groupId in have) {
+                AppData.profiles.deleteProxy(entity)
+            } else {
+                entity.countrySource = AUTO_COUNTRY_SOURCE
+                entity.countryCode = FLAG_COUNTRY
+                AppData.profiles.updateProxy(entity)
+                have += entity.groupId
+            }
+        }
     }
 
     /** @return true when something changed. */

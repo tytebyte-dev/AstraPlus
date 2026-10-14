@@ -89,6 +89,7 @@ class GroupInterfaceAdapter(val context: ThemedActivity) : GroupManager.Interfac
     }
 
     override suspend fun onUpdateFailure(group: ProxyGroup, message: String) {
+        if (DefaultSubscriptions.isSeeding(group.id)) return
         onMainDispatcher {
             context.snackbar(message).show()
         }

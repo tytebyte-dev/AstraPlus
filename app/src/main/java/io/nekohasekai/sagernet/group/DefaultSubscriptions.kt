@@ -158,7 +158,7 @@ object DefaultSubscriptions {
         Entry(
             "🌀 CYBERPORTAL | Black List 6",
             listOf(
-                "https://raw.githubusercontent.com/RKPchannel/RKP_bypass_configs/main/blacklist.txt",
+                "https://hub.mos.ru/rkp/sub-roskompozor",
             ),
         ),
         Entry(

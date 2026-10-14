@@ -1,6 +1,6 @@
 name: LibCore (build or restore)
 description: >
-  Builds libcore.aar with layered caches (aar, source repos, Go, Cargo), or only restores the
+  Builds libcore.aar with layered caches (aar, Go, Cargo, NDK), or only restores the
   finished aar when restore-only is true. Needs a prior checkout.
 
 inputs:
@@ -38,7 +38,6 @@ runs:
         # which makes hashFiles() fail.
         inputs_hash=$(git ls-files -s buildScript libcore patches | sha1sum | cut -d' ' -f1)
         echo "aar=libcore-v${{ inputs.cache-version }}-go${{ inputs.go-version }}-ndk${{ inputs.ndk-version }}-$inputs_hash" >> "$GITHUB_OUTPUT"
-        echo "parent=$(dirname "$GITHUB_WORKSPACE")" >> "$GITHUB_OUTPUT"
 
     - name: Restore libcore.aar
       id: aar
@@ -56,25 +55,9 @@ runs:
 
     # ---- cold path: only when the aar is not cached ----
 
-    # Source repos are cloned next to the workspace by get_source.sh, which is idempotent on an
-    # existing clone (fetch, force checkout, clean, re-apply patches).
-    - name: Cache source repositories
-      if: inputs.restore-only != 'true' && steps.aar.outputs.cache-hit != 'true'
-      uses: actions/cache@v5
-      with:
-        path: |
-          ${{ steps.key.outputs.parent }}/sing-box
-          ${{ steps.key.outputs.parent }}/amneziawg-go
-          ${{ steps.key.outputs.parent }}/utls
-          ${{ steps.key.outputs.parent }}/sing-vmess
-          ${{ steps.key.outputs.parent }}/libneko
-          ${{ steps.key.outputs.parent }}/byedpi
-          ${{ steps.key.outputs.parent }}/MasterDnsVPN-plus
-          ${{ steps.key.outputs.parent }}/adblock-rust
-          ${{ steps.key.outputs.parent }}/adblock-resources
-          ${{ steps.key.outputs.parent }}/uBlock
-        key: libcore-src-v${{ inputs.cache-version }}-${{ hashFiles('buildScript/lib/core/get_source_env.sh') }}
-        restore-keys: libcore-src-v${{ inputs.cache-version }}-
+    # Source repos (sing-box etc.) are deliberately NOT cached: get_source.sh patches them in place and
+    # "git clean" leaves nested untracked repos behind, so a cached patched tree makes the next
+    # "git apply" fail ("Failed to apply patch for sing-box").
 
     # libcore/init.sh wipes libcore/.build, so Go caches live outside of it (env.sh honours
     # GOCACHE and GOMODCACHE).

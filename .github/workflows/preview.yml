@@ -15,56 +15,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Compute libcore cache key
-        id: key
-        run: |
-          golang_status=$(find buildScript libcore/*.sh -type f | sort | xargs cat | sha1sum | cut -d' ' -f1)
-          libcore_status=$(git ls-files libcore | sort | xargs cat | sha1sum | cut -d' ' -f1)
-          echo "golang_status=$golang_status" >> "$GITHUB_OUTPUT"
-          echo "libcore_status=$libcore_status" >> "$GITHUB_OUTPUT"
-          echo "$golang_status" > golang_status
-          echo "$libcore_status" > libcore_status
-
-      - name: LibCore cache
-        id: cache
-        uses: actions/cache@v5
-        with:
-          path: app/libs/libcore.aar
-          key: libcore-${{ hashFiles('.github/workflows/*') }}-${{ steps.key.outputs.golang_status }}-${{ steps.key.outputs.libcore_status }}
-
-      - name: Install Go
-        if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions/setup-go@v6
+      - name: Build or restore libcore
+        uses: ./.github/actions/libcore
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: false # в корне нет go.mod, кэш setup-go всё равно не находит зависимости
-
-      - name: Install Rust (Android targets)
-        if: steps.cache.outputs.cache-hit != 'true'
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
-
-      # libcronet.a (sagernet/cronet-go) нельзя слинковать lld из NDK 27.3:
-      # "unknown relocation (315)". Upstream проверяет Android-линковку на NDK r28.
-      - name: Setup Android NDK r28
-        if: steps.cache.outputs.cache-hit != 'true'
-        id: ndk
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r28
-          add-to-path: false
-
-      - name: Use NDK r28 for libcore
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          echo "ANDROID_NDK_HOME=${{ steps.ndk.outputs.ndk-path }}" >> "$GITHUB_ENV"
-          echo "NDK=${{ steps.ndk.outputs.ndk-path }}" >> "$GITHUB_ENV"
-          grep Pkg.Revision "${{ steps.ndk.outputs.ndk-path }}/source.properties"
-
-      - name: Native build
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: ./run lib core
 
   build:
     name: Build OSS APK
@@ -75,31 +29,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Compute libcore cache key
-        id: key
-        run: |
-          golang_status=$(find buildScript libcore/*.sh -type f | sort | xargs cat | sha1sum | cut -d' ' -f1)
-          libcore_status=$(git ls-files libcore | sort | xargs cat | sha1sum | cut -d' ' -f1)
-          echo "golang_status=$golang_status" >> "$GITHUB_OUTPUT"
-          echo "libcore_status=$libcore_status" >> "$GITHUB_OUTPUT"
-          echo "$golang_status" > golang_status
-          echo "$libcore_status" > libcore_status
-
       - name: Restore libcore
-        uses: actions/cache/restore@v5
+        uses: ./.github/actions/libcore
         with:
-          path: app/libs/libcore.aar
-          key: libcore-${{ hashFiles('.github/workflows/*') }}-${{ steps.key.outputs.golang_status }}-${{ steps.key.outputs.libcore_status }}
-          fail-on-cache-miss: true
+          go-version: ${{ env.GO_VERSION }}
+          restore-only: 'true'
 
-      - name: Gradle cache
-        uses: actions/cache@v5
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-oss-${{ hashFiles('**/*.gradle.kts', '**/gradle-wrapper.properties') }}
-          restore-keys: gradle-oss-
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
 
       - name: Gradle build
         env:

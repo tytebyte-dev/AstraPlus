@@ -1,0 +1,150 @@
+name: LibCore (build or restore)
+description: >
+  Builds libcore.aar with layered caches (aar, source repos, Go, Cargo), or only restores the
+  finished aar when restore-only is true. Needs a prior checkout.
+
+inputs:
+  go-version:
+    description: Go version used for the native build
+    required: true
+  ndk-version:
+    description: NDK version for libcore (r27.3 cannot link libcronet.a, use r28+)
+    required: false
+    default: r28
+  cache-version:
+    description: Bump to drop every libcore cache
+    required: false
+    default: '1'
+  restore-only:
+    description: Only restore the cached aar and fail on a miss (for jobs after the libcore job)
+    required: false
+    default: 'false'
+
+outputs:
+  cache-hit:
+    description: Whether the aar came from cache
+    value: ${{ steps.aar.outputs.cache-hit }}
+
+runs:
+  using: composite
+  steps:
+    # Everything that can change the aar: build scripts (with pinned commits), libcore sources,
+    # patches, toolchain versions.
+    - name: Compute libcore cache key
+      id: key
+      shell: bash
+      run: |
+        echo "aar=libcore-v${{ inputs.cache-version }}-go${{ inputs.go-version }}-ndk${{ inputs.ndk-version }}-${{ hashFiles('buildScript/**', 'libcore/**', 'patches/**') }}" >> "$GITHUB_OUTPUT"
+        echo "parent=$(dirname "$GITHUB_WORKSPACE")" >> "$GITHUB_OUTPUT"
+
+    - name: Restore libcore.aar
+      id: aar
+      uses: actions/cache/restore@v5
+      with:
+        path: app/libs/libcore.aar
+        key: ${{ steps.key.outputs.aar }}
+
+    - name: Fail on libcore cache miss
+      if: inputs.restore-only == 'true' && steps.aar.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        echo "::error::libcore.aar not found in cache (${{ steps.key.outputs.aar }}); the libcore job must run first"
+        exit 1
+
+    # ---- cold path: only when the aar is not cached ----
+
+    # Source repos are cloned next to the workspace by get_source.sh, which is idempotent on an
+    # existing clone (fetch, force checkout, clean, re-apply patches).
+    - name: Cache source repositories
+      if: inputs.restore-only != 'true' && steps.aar.outputs.cache-hit != 'true'
+      uses: actions/cache@v5
+      with:
+        path: |
+          ${{ steps.key.outputs.parent }}/sing-box
+          ${{ steps.key.outputs.parent }}/amneziawg-go
+          ${{ steps.key.outputs.parent }}/utls
+          ${{ steps.key.outputs.parent }}/sing-vmess
+          ${{ steps.key.outputs.parent }}/libneko
+          ${{ steps.key.outputs.parent }}/byedpi
+          ${{ steps.key.outputs.parent }}/MasterDnsVPN-plus
+          ${{ steps.key.outputs.parent }}/adblock-rust
+          ${{ steps.key.outputs.parent }}/adblock-resources
+          ${{ steps.key.outputs.parent }}/uBlock
+        key: libcore-src-v${{ inputs.cache-version }}-${{ hashFiles('buildScript/lib/core/get_source_env.sh') }}
+        restore-keys: libcore-src-v${{ inputs.cache-version }}-
+
+    # libcore/init.sh wipes libcore/.build, so Go caches live outside of it (env.sh honours
+    # GOCACHE and GOMODCACHE).
+    - name: Cache Go modules and build cache
+      if: inputs.restore-only != 'true' && steps.aar.outputs.cache-hit != 'true'
+      uses: actions/cache@v5
+      with:
+        path: |
+          ~/.cache/libcore-go-mod
+          ~/.cache/libcore-go-build
+        key: libcore-go-v${{ inputs.cache-version }}-${{ inputs.go-version }}-${{ hashFiles('libcore/go.sum') }}
+        restore-keys: |
+          libcore-go-v${{ inputs.cache-version }}-${{ inputs.go-version }}-
+          libcore-go-v${{ inputs.cache-version }}-
+
+    - name: Point Go caches to the cached directories
+      if: inputs.restore-only != 'true' && steps.aar.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        echo "GOMODCACHE=$HOME/.cache/libcore-go-mod" >> "$GITHUB_ENV"
+        echo "GOCACHE=$HOME/.cache/libcore-go-build" >> "$GITHUB_ENV"
+
+    - name: Cache Cargo registry
+      if: inputs.restore-only != 'true' && steps.aar.outputs.cache-hit != 'true'
+      uses: actions/cache@v5
+      with:
+        path: |
+          ~/.cargo/registry/index
+          ~/.cargo/registry/cache
+          ~/.cargo/git/db
+        key: libcore-cargo-v${{ inputs.cache-version }}-${{ hashFiles('patches/sing-box.patch', 'buildScript/lib/core/get_source_env.sh') }}
+        restore-keys: libcore-cargo-v${{ inputs.cache-version }}-
+
+    - name: Install Go
+      if: inputs.restore-only != 'true' && steps.aar.outputs.cache-hit != 'true'
+      uses: actions/setup-go@v6
+      with:
+        go-version: ${{ inputs.go-version }}
+        cache: false # libcore caches are handled above; the repo root has no go.mod
+
+    - name: Install Rust (Android targets)
+      if: inputs.restore-only != 'true' && steps.aar.outputs.cache-hit != 'true'
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+
+    # libcronet.a (sagernet/cronet-go) cannot be linked by lld from NDK 27.3:
+    # "unknown relocation (315)". setup-ndk keeps its own cache of the downloaded NDK.
+    - name: Setup Android NDK
+      if: inputs.restore-only != 'true' && steps.aar.outputs.cache-hit != 'true'
+      id: ndk
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: ${{ inputs.ndk-version }}
+        add-to-path: false
+        local-cache: true # reuse the downloaded NDK between runs
+
+    - name: Use the NDK for libcore
+      if: inputs.restore-only != 'true' && steps.aar.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        echo "ANDROID_NDK_HOME=${{ steps.ndk.outputs.ndk-path }}" >> "$GITHUB_ENV"
+        echo "NDK=${{ steps.ndk.outputs.ndk-path }}" >> "$GITHUB_ENV"
+        grep Pkg.Revision "${{ steps.ndk.outputs.ndk-path }}/source.properties"
+
+    - name: Native build
+      if: inputs.restore-only != 'true' && steps.aar.outputs.cache-hit != 'true'
+      shell: bash
+      run: ./run lib core
+
+    - name: Save libcore.aar
+      if: inputs.restore-only != 'true' && steps.aar.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v5
+      with:
+        path: app/libs/libcore.aar
+        key: ${{ steps.key.outputs.aar }}

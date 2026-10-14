@@ -2081,4 +2081,6 @@
     <string name="batch_rename">Пакетное переименование</string>
     <string name="batch_rename_confirm">Переименовать все серверы в этой группе в «Server 1», «Server 2», «Server 3»…? Серверы, которые уже называются «Server N», сохраняют свой номер.</string>
     <string name="batch_rename_progress_title">Переименовываем серверы</string>
+    <string name="auto_server_name">Авто-%s</string>
+    <string name="all_servers_group">Все сервера</string>
 </resources>

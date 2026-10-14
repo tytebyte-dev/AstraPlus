@@ -1,5 +1,6 @@
 package io.nekohasekai.sagernet.database
 
+import io.nekohasekai.sagernet.AUTO_COUNTRY_SOURCE
 import android.database.sqlite.SQLiteCantOpenDatabaseException
 import io.nekohasekai.sagernet.R
 import io.nekohasekai.sagernet.aidl.TrafficData
@@ -153,6 +154,7 @@ object ProfileManager {
 
     suspend fun deleteProfile2(groupId: Long, profileId: Long) {
         val profile = getProfile(profileId)
+        if (profile?.countrySource == AUTO_COUNTRY_SOURCE) return
         if (AppData.profiles.deleteById(profileId) == 0) return
         if (profile?.masterDnsVPNBean != null) {
             deleteMasterDnsVPNProfileCache(profileId)
@@ -166,6 +168,7 @@ object ProfileManager {
 
     suspend fun deleteProfile(groupId: Long, profileId: Long) {
         val profile = getProfile(profileId)
+        if (profile?.countrySource == AUTO_COUNTRY_SOURCE) return
         if (AppData.profiles.deleteById(profileId) == 0) return
         if (profile?.masterDnsVPNBean != null) {
             deleteMasterDnsVPNProfileCache(profileId)

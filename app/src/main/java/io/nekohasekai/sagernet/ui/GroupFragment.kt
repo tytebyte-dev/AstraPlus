@@ -138,7 +138,8 @@ class GroupFragment : ToolbarFragment(), GroupManager.Listener,
 
     private fun createUiItem(group: ProxyGroup): GroupUiItem {
         val subscription = group.subscription
-        val count = AppData.profiles.countByGroup(group.id)
+        val isAll = group.type == GroupType.ALL
+        val count = if (isAll) AppData.profiles.getAllManual().size.toLong() else AppData.profiles.countByGroup(group.id)
         val updating = group.id in GroupUpdater.updating
         val updateProgress = GroupUpdater.progress[group.id]
         return GroupUiItem(
@@ -162,13 +163,13 @@ class GroupFragment : ToolbarFragment(), GroupManager.Listener,
                 }
             },
             traffic = subscriptionTraffic(subscription),
-            canEdit = !group.ungrouped || GroupManager.canDelete(group.id),
-            canDelete = GroupDeletionPolicy.canSwipeDelete(
+            canEdit = !isAll && (!group.ungrouped || GroupManager.canDelete(group.id)),
+            canDelete = !isAll && GroupDeletionPolicy.canSwipeDelete(
                 isUngrouped = group.ungrouped,
                 canDeleteGroup = GroupManager.canDelete(group.id),
                 isUpdating = updating,
             ),
-            canDrag = !group.ungrouped && !updating,
+            canDrag = !isAll && !group.ungrouped && !updating,
             canUpdate = group.type == GroupType.SUBSCRIPTION,
             isUpdating = updating,
             progress = updateProgress?.let {

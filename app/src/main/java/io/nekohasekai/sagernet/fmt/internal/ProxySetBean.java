@@ -19,6 +19,7 @@ public class ProxySetBean extends InternalBean {
 
     public static final int TYPE_LIST = 0;
     public static final int TYPE_GROUP = 1;
+    public static final int TYPE_ALL = 2;
 
     public static final int MODE_SELECTOR = 0;
     public static final int MODE_URL_TEST = 1;
@@ -33,6 +34,8 @@ public class ProxySetBean extends InternalBean {
     public String groupFilterNotRegex = "";
     public boolean skipInsecureProfiles = false;
 
+    public boolean auto = false;
+
     public boolean interruptExistConnections = false;
 
     public String testURL = CONNECTION_TEST_URL;
@@ -43,7 +46,7 @@ public class ProxySetBean extends InternalBean {
     @Override
     public void initializeDefaultValues() {
         super.initializeDefaultValues();
-        if (type != TYPE_LIST && type != TYPE_GROUP) {
+        if (type != TYPE_LIST && type != TYPE_GROUP && type != TYPE_ALL) {
             type = TYPE_LIST;
         }
         if (mode != MODE_SELECTOR && mode != MODE_URL_TEST) {
@@ -68,7 +71,7 @@ public class ProxySetBean extends InternalBean {
 
     @Override
     public void serialize(ByteBufferOutput output) {
-        output.writeInt(4);
+        output.writeInt(5);
         output.writeBoolean(interruptExistConnections);
         output.writeString(testURL);
         output.writeString(testInterval);
@@ -90,6 +93,7 @@ public class ProxySetBean extends InternalBean {
         output.writeLong(defaultOutbound);
         output.writeBoolean(skipInsecureProfiles);
         output.writeString(embeddedProfilesJson);
+        output.writeBoolean(auto);
     }
 
     @Override
@@ -131,6 +135,7 @@ public class ProxySetBean extends InternalBean {
         } else {
             embeddedProfilesJson = "[]";
         }
+        auto = version >= 5 && input.readBoolean();
     }
 
     public String displayType() {

@@ -379,7 +379,11 @@ object IPv6Mode {
 object GroupType {
     const val BASIC = 0
     const val SUBSCRIPTION = 1
+    const val ALL = 2
 }
+
+/** Marker stored in ProxyEntity.countrySource for generated "Auto" entries. */
+const val AUTO_COUNTRY_SOURCE = 99
 
 object GroupOrder {
     const val ORIGIN = 0

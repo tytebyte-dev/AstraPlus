@@ -176,6 +176,7 @@ data class ProxyGroup(
         }
 
     fun displayName(): String {
+        if (type == GroupType.ALL) return app.getString(R.string.all_servers_group)
         return name.takeIf { !it.isNullOrBlank() } ?: app.getString(R.string.group_default)
     }
 

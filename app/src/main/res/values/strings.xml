@@ -2115,4 +2115,6 @@
     <string name="batch_rename">Batch rename</string>
     <string name="batch_rename_confirm">Rename all servers in this group to “Server 1”, “Server 2”, “Server 3”…? Servers already named “Server N” keep their number.</string>
     <string name="batch_rename_progress_title">Renaming servers</string>
+    <string name="auto_server_name">Auto-%s</string>
+    <string name="all_servers_group">All servers</string>
 </resources>

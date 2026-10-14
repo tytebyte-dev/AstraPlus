@@ -101,6 +101,7 @@ internal class ProfileChainResolver(
             // A group normally contains the set collecting it. Explicit self references are errors.
             !(bean.type == ProxySetBean.TYPE_GROUP && it.id == profile.id) &&
                 it.type != ProxyEntity.TYPE_MASTERDNSVPN &&
+                (!bean.auto || (it.type != ProxyEntity.TYPE_CHAIN && it.requireBean() !is ProxySetBean)) &&
                 (regex == null || regex.containsMatchIn(it.displayName())) &&
                 !containsByeDpi(it) && !containsMasterDnsVPN(it)
         }
@@ -138,6 +139,7 @@ internal class ProfileChainResolver(
         return when (bean.type) {
             ProxySetBean.TYPE_LIST -> profiles.getEntities(bean.proxies)
             ProxySetBean.TYPE_GROUP -> profiles.getByGroup(bean.groupId)
+            ProxySetBean.TYPE_ALL -> profiles.getAllManual()
             else -> error("invalid proxy set type ${bean.type}")
         }
     }

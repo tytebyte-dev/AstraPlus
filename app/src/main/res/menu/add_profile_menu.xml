@@ -181,6 +181,9 @@
                 android:id="@+id/action_show_active"
                 android:title="@string/show_active" />
             <item
+                android:id="@+id/action_batch_rename"
+                android:title="@string/batch_rename" />
+            <item
                 android:id="@+id/action_order_layout"
                 android:title="@string/sort_and_layout">
                 <menu>

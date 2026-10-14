@@ -75,6 +75,7 @@ import io.nekohasekai.sagernet.bg.BaseService
 import io.nekohasekai.sagernet.bg.proto.UrlTest
 import io.nekohasekai.sagernet.database.DataStore
 import io.nekohasekai.sagernet.database.GroupManager
+import io.nekohasekai.sagernet.database.ProfileBatchRenamer
 import io.nekohasekai.sagernet.database.ProfileManager
 import io.nekohasekai.sagernet.database.ProfileTransferOperation
 import io.nekohasekai.sagernet.database.ProfileTransferTargetUnavailableException
@@ -115,6 +116,7 @@ import io.nekohasekai.sagernet.ktx.tryToShow
 import io.nekohasekai.sagernet.ktx.triggerFullRestart
 import io.nekohasekai.sagernet.ui.profile.ChainSettingsActivity
 import io.nekohasekai.sagernet.ui.compose.NekoComposeTheme
+import io.nekohasekai.sagernet.ui.compose.showBatchRenameDialog
 import io.nekohasekai.sagernet.ui.compose.ProfileCard
 import io.nekohasekai.sagernet.ui.compose.ProfileCardLayout
 import io.nekohasekai.sagernet.ui.compose.ProfileCardModel
@@ -1359,6 +1361,22 @@ class ConfigurationFragment @JvmOverloads constructor(
                         }
                     }
                 }
+            }
+
+            R.id.action_batch_rename -> {
+                requireContext().showComposeMessageDialog(
+                    title = getText(R.string.batch_rename),
+                    message = getString(R.string.batch_rename_confirm),
+                    positiveButton = getText(R.string.yes),
+                    negativeButton = getText(R.string.no),
+                    onPositive = {
+                        if (ProfileBatchRenamer.tryStart()) {
+                            val groupId = DataStore.currentGroupId()
+                            requireContext().showBatchRenameDialog()
+                            runOnDefaultDispatcher { ProfileBatchRenamer.rename(groupId) }
+                        }
+                    },
+                )
             }
 
             R.id.action_remove_duplicate -> {
@@ -3988,6 +4006,7 @@ class ConfigurationFragment @JvmOverloads constructor(
             ProfileToolbarActionId.CLEAR_TRAFFIC -> R.id.action_clear_traffic_statistics
             ProfileToolbarActionId.CLEAR_TEST_RESULTS -> R.id.action_connection_test_clear_results
             ProfileToolbarActionId.REMOVE_DUPLICATES -> R.id.action_remove_duplicate
+            ProfileToolbarActionId.BATCH_RENAME -> R.id.action_batch_rename
             ProfileToolbarActionId.DELETE_UNAVAILABLE -> R.id.action_connection_test_delete_unavailable
             ProfileToolbarActionId.REMOVE_INSECURE -> R.id.action_remove_insecure
             ProfileToolbarActionId.ICMP_PING -> R.id.action_connection_icmp_ping

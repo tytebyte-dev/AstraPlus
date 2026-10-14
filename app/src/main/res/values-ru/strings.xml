@@ -2078,4 +2078,7 @@
     <string name="default_subscriptions_progress">%1$d из %2$d</string>
     <string name="default_subscriptions_skip_hint">Завис на одном списке? Нажмите «Пропустить» и продолжайте — подписки можно обновить позже.</string>
     <string name="default_subscriptions_skip">Пропустить</string>
+    <string name="batch_rename">Пакетное переименование</string>
+    <string name="batch_rename_confirm">Переименовать все серверы в этой группе в «Server 1», «Server 2», «Server 3»…? Серверы, которые уже называются «Server N», сохраняют свой номер.</string>
+    <string name="batch_rename_progress_title">Переименовываем серверы</string>
 </resources>
